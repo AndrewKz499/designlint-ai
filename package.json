@@ -1,0 +1,21 @@
+{
+  "name": "designlint-ai",
+  "version": "1.0.0",
+  "description": "Figma plugin for design system audit",
+  "scripts": {
+    "build:sandbox": "vite build --mode sandbox",
+    "build:ui": "vite build && node scripts/build-ui.mjs",
+    "build": "npm run build:sandbox && npm run build:ui",
+    "watch:sandbox": "vite build --mode sandbox --watch",
+    "watch:ui": "vite build --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^6.0.0"
+  }
+}
