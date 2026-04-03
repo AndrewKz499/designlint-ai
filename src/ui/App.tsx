@@ -1,8 +1,10 @@
 // Главный компонент UI плагина
 import { useState, useEffect } from 'react';
 import type { PluginMessage, ScanResult } from '../shared/types';
+import { ScanDesignSystem } from './components/ScanDesignSystem';
 
 type Status = 'idle' | 'scanning' | 'done';
+type View = 'mode0' | 'scanner';
 
 // Отправляет сообщение в sandbox
 function sendMessage(msg: PluginMessage): void {
@@ -10,6 +12,7 @@ function sendMessage(msg: PluginMessage): void {
 }
 
 export function App() {
+  const [currentView, setCurrentView] = useState<View>('mode0');
   const [status, setStatus] = useState<Status>('idle');
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -31,6 +34,15 @@ export function App() {
     return () => window.removeEventListener('message', handler);
   }, []);
 
+  // Mode 0 завершён — переходим к сканеру и сразу запускаем сканирование
+  const handleMode0Complete = () => {
+    setCurrentView('scanner');
+    setStatus('scanning');
+    setProgress(null);
+    setResult(null);
+    sendMessage({ type: 'start-scan' });
+  };
+
   const handleStartScan = () => {
     setStatus('scanning');
     setProgress(null);
@@ -44,9 +56,31 @@ export function App() {
     setProgress(null);
   };
 
+  // Возврат к Mode 0 (настройка дизайн-системы)
+  const handleGoToMode0 = () => {
+    setCurrentView('mode0');
+  };
+
+  // -------------------------------------------------------------------------
+
+  if (currentView === 'mode0') {
+    return (
+      <div style={styles.root}>
+        <h2 style={styles.title}>DesignLint AI</h2>
+        <ScanDesignSystem onComplete={handleMode0Complete} />
+      </div>
+    );
+  }
+
+  // currentView === 'scanner'
   return (
     <div style={styles.root}>
-      <h2 style={styles.title}>DesignLint AI</h2>
+      <div style={styles.titleRow}>
+        <h2 style={styles.title}>DesignLint AI</h2>
+        <button style={styles.btnIcon} onClick={handleGoToMode0} title="Настройка дизайн-системы">
+          ⚙️
+        </button>
+      </div>
 
       {status === 'idle' && (
         <>
@@ -77,7 +111,6 @@ export function App() {
             <li>Нод просканировано: <strong>{result.totalNodesScanned}</strong></li>
             <li>Цветов найдено: <strong>{result.colors.length}</strong></li>
             <li>Текстов найдено: <strong>{result.texts.length}</strong></li>
-            <li>Время: <strong>{result.scanDurationMs} мс</strong></li>
           </ul>
           <button style={styles.btnSecondary} onClick={handleReset}>
             Сканировать заново
@@ -89,7 +122,7 @@ export function App() {
 }
 
 // ---------------------------------------------------------------------------
-// Стили (inline, без зависимости от CSS-файлов)
+// Стили
 // ---------------------------------------------------------------------------
 
 const styles = {
@@ -99,10 +132,24 @@ const styles = {
     fontSize: '13px',
     color: '#1a1a1a',
   },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '16px',
+  },
   title: {
-    margin: '0 0 16px',
+    margin: 0,
     fontSize: '16px',
     fontWeight: 600,
+  },
+  btnIcon: {
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '16px',
+    padding: '2px 4px',
+    lineHeight: 1,
   },
   hint: {
     margin: '0 0 16px',
