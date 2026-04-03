@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => {
       build: {
         outDir: "dist",
         emptyOutDir: false,
+        minify: false,
+        target: 'es2019',
         lib: {
           entry: resolve(__dirname, "src/sandbox/code.ts"),
           name: "code",
