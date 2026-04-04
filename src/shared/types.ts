@@ -203,4 +203,13 @@ export type PluginMessage =
   // --- Mode 1: аудит файла ---
 
   /** Sandbox завершил аудит и возвращает результат с нарушениями */
-  | { type: 'detection-complete'; data: DetectionResult };
+  | { type: 'detection-complete'; data: DetectionResult }
+
+  // --- Навигация и маркеры на холсте ---
+
+  /** UI просит sandbox переместить камеру к указанной ноде */
+  | { type: 'navigate-to-node'; data: { nodeId: string; pageId: string } }
+  /** UI просит sandbox создать маркеры на холсте для переданных нарушений */
+  | { type: 'create-markers'; data: { violations: Violation[] } }
+  /** UI просит sandbox удалить все маркеры с холста */
+  | { type: 'clear-markers' };

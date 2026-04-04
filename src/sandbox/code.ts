@@ -4,6 +4,7 @@
 import { scanDocument } from './scanner';
 import { discoverSources, buildSnapshot, saveSnapshot, loadSnapshot, isSnapshotStale } from './designSystemParser';
 import { runDetection } from './detector';
+import { navigateToNode, createMarkers, clearMarkers } from './markers';
 import type { PluginMessage } from '../shared/types';
 
 // Открываем UI-панель плагина
@@ -25,6 +26,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       const detection = runDetection(scanResult, snapshot);
       figma.ui.postMessage({ type: 'scan-complete', data: scanResult });
       figma.ui.postMessage({ type: 'detection-complete', data: detection });
+      // Автоматически расставляем маркеры после завершения аудита
+      await createMarkers(detection.violations);
     } catch (err) {
       figma.notify('Ошибка сканирования: ' + String(err));
     }
@@ -72,6 +75,38 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       await saveSnapshot(snapshot);
 
       figma.ui.postMessage({ type: 'ds-scan-complete', data: { snapshot } });
+    } catch (err) {
+      figma.notify('Ошибка: ' + String(err));
+    }
+    return;
+  }
+
+  // --- Навигация и маркеры на холсте ---
+
+  // Переход к ноде с нарушением
+  if (msg.type === 'navigate-to-node') {
+    try {
+      await navigateToNode(msg.data.nodeId, msg.data.pageId);
+    } catch (err) {
+      figma.notify('Ошибка: ' + String(err));
+    }
+    return;
+  }
+
+  // Создание маркеров на холсте
+  if (msg.type === 'create-markers') {
+    try {
+      await createMarkers(msg.data.violations);
+    } catch (err) {
+      figma.notify('Ошибка: ' + String(err));
+    }
+    return;
+  }
+
+  // Удаление всех маркеров с холста
+  if (msg.type === 'clear-markers') {
+    try {
+      await clearMarkers();
     } catch (err) {
       figma.notify('Ошибка: ' + String(err));
     }

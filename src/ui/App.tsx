@@ -147,7 +147,12 @@ export function App() {
           {detection.violations.length > 0 && (
             <ul style={styles.violationList}>
               {detection.violations.slice(0, 20).map((v) => (
-                <li key={v.id} style={styles.violationItem}>
+                <li
+                  key={v.id}
+                  style={styles.violationItem}
+                  onClick={() => sendMessage({ type: 'navigate-to-node', data: { nodeId: v.nodeId, pageId: v.pageId } })}
+                  title="Перейти к элементу"
+                >
                   <span
                     style={{ ...styles.dot, background: severityDot(v.severity) }}
                   />
@@ -242,6 +247,7 @@ const styles = {
     display: 'flex',
     alignItems: 'flex-start',
     gap: '8px',
+    cursor: 'pointer',
   },
   dot: {
     flexShrink: 0,
