@@ -3,6 +3,7 @@
 
 import { scanDocument } from './scanner';
 import { discoverSources, buildSnapshot, saveSnapshot, loadSnapshot, isSnapshotStale } from './designSystemParser';
+import { runDetection } from './detector';
 import type { PluginMessage } from '../shared/types';
 
 // Открываем UI-панель плагина
@@ -19,8 +20,11 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   // Запуск сканирования документа (Mode 1)
   if (msg.type === 'start-scan') {
     try {
-      const result = await scanDocument();
-      figma.ui.postMessage({ type: 'scan-complete', data: result });
+      const scanResult = await scanDocument();
+      const snapshot = await loadSnapshot();
+      const detection = runDetection(scanResult, snapshot);
+      figma.ui.postMessage({ type: 'scan-complete', data: scanResult });
+      figma.ui.postMessage({ type: 'detection-complete', data: detection });
     } catch (err) {
       figma.notify('Ошибка сканирования: ' + String(err));
     }

@@ -117,6 +117,56 @@ export interface ReferenceSnapshot {
   hash: string;
 }
 
+/** Тип нарушения, обнаруженного в Figma-файле */
+export type ViolationType =
+  /** Цвет задан напрямую, нет привязки к стилю или токену */
+  | 'hardcoded_color'
+  /** Текст без привязанного текстового стиля */
+  | 'missing_text_style'
+  /** Значение совпадает с токеном, но стиль не привязан */
+  | 'detached_style'
+  /** Значение похоже на токен (дельта ≤5 в RGB) */
+  | 'similar_to_token'
+  /** Размер шрифта не соответствует шкале из снепшота */
+  | 'nonstandard_font_size'
+  /** Spacing не кратен базовой шкале из снепшота */
+  | 'spacing_off_scale';
+
+/** Серьёзность нарушения */
+export type Severity = 'critical' | 'warning' | 'info';
+
+/** Одно нарушение, обнаруженное при аудите */
+export interface Violation {
+  /** Уникальный ID, например nodeId + '_' + type */
+  id: string;
+  type: ViolationType;
+  severity: Severity;
+  nodeId: string;
+  nodeName: string;
+  pageId: string;
+  pageName: string;
+  /** Человекочитаемое описание, например "Цвет #3366CC задан напрямую, не привязан к стилю" */
+  message: string;
+  /** Текущее значение в ноде, например "#3366CC" или "15px" */
+  currentValue: string;
+  /** Рекомендованный токен, например "Primary/Blue"; null если подходящего нет */
+  suggestedToken: string | null;
+}
+
+/** Итог проверки файла на соответствие дизайн-системе */
+export interface DetectionResult {
+  violations: Violation[];
+  /** Оценка качества файла от 0 до 100 */
+  healthScore: number;
+  /** Сводка по количеству нарушений */
+  summary: {
+    total: number;
+    critical: number;
+    warning: number;
+    info: number;
+  };
+}
+
 /**
  * Union type всех сообщений, передаваемых между sandbox (code.ts) и UI через postMessage.
  * Каждое сообщение идентифицируется полем type.
@@ -148,4 +198,9 @@ export type PluginMessage =
   /** Sandbox сообщает текущий этап сканирования: sandbox → UI */
   | { type: 'ds-scan-progress'; data: { stage: string } }
   /** Sandbox завершил сканирование и возвращает готовый снепшот */
-  | { type: 'ds-scan-complete'; data: { snapshot: ReferenceSnapshot } };
+  | { type: 'ds-scan-complete'; data: { snapshot: ReferenceSnapshot } }
+
+  // --- Mode 1: аудит файла ---
+
+  /** Sandbox завершил аудит и возвращает результат с нарушениями */
+  | { type: 'detection-complete'; data: DetectionResult };
