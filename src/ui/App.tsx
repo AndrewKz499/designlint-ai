@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import type { PluginMessage, ScanResult, DetectionResult, Violation } from '../shared/types';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
+import { HealthScore } from './components/HealthScore';
 
 type Status = 'idle' | 'scanning' | 'done';
 type View = 'mode0' | 'scanner';
@@ -119,10 +120,10 @@ export function App() {
 
       {status === 'done' && detection !== null && (
         <>
-          {/* Заголовок с health score */}
-          <p style={styles.healthScore}>
-            Health Score: <strong>{detection.healthScore}/100</strong>
-          </p>
+          {/* Круговой индикатор Health Score */}
+          <div style={styles.scoreCenter}>
+            <HealthScore score={detection.healthScore} />
+          </div>
 
           {/* Сводка по severity */}
           <div style={styles.summaryBlock}>
@@ -142,6 +143,54 @@ export function App() {
               </div>
             )}
           </div>
+
+          {/* Блок "По категориям" */}
+          {detection.violations.length > 0 && (
+            <div style={styles.groupBlock}>
+              <div style={styles.groupTitle}>Категории</div>
+              {((): React.ReactNode => {
+                const counts: Partial<Record<string, number>> = {};
+                for (let i = 0; i < detection.violations.length; i++) {
+                  const t = detection.violations[i].type;
+                  counts[t] = (counts[t] || 0) + 1;
+                }
+                const typeLabels: Record<string, string> = {
+                  hardcoded_color:      '🎨 Hardcoded цвета',
+                  missing_text_style:   '📝 Без текстового стиля',
+                  detached_style:       '🔗 Отвязанный стиль',
+                  similar_to_token:     '🔍 Похожий на токен',
+                  nonstandard_font_size:'📏 Нестандартный размер',
+                  spacing_off_scale:    '📐 Spacing вне шкалы',
+                };
+                return Object.keys(counts).map((type) => (
+                  <div key={type} style={styles.groupRow}>
+                    <span>{typeLabels[type] || type}</span>
+                    <strong>{counts[type]}</strong>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+
+          {/* Блок "По страницам" */}
+          {detection.violations.length > 0 && (
+            <div style={styles.groupBlock}>
+              <div style={styles.groupTitle}>Страницы</div>
+              {((): React.ReactNode => {
+                const pageCounts: Record<string, number> = {};
+                for (let i = 0; i < detection.violations.length; i++) {
+                  const name = detection.violations[i].pageName;
+                  pageCounts[name] = (pageCounts[name] || 0) + 1;
+                }
+                return Object.keys(pageCounts).map((name) => (
+                  <div key={name} style={styles.groupRow}>
+                    <span>{name}</span>
+                    <strong>{pageCounts[name]}</strong>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
 
           {/* Список нарушений — первые 20 */}
           {detection.violations.length > 0 && (
@@ -220,9 +269,24 @@ const styles = {
     margin: '0 0 16px',
     color: '#555',
   },
-  healthScore: {
-    margin: '0 0 12px',
-    fontSize: '15px',
+  scoreCenter: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginBottom: '12px',
+  },
+  groupBlock: {
+    marginBottom: '16px',
+  },
+  groupTitle: {
+    fontWeight: 600,
+    fontSize: '13px',
+    marginBottom: '6px',
+  },
+  groupRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '3px 0',
+    fontSize: '13px',
   },
   summaryBlock: {
     marginBottom: '12px',
