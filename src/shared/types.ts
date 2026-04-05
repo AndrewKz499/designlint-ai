@@ -151,6 +151,8 @@ export interface Violation {
   currentValue: string;
   /** Рекомендованный токен, например "Primary/Blue"; null если подходящего нет */
   suggestedToken: string | null;
+  /** ID стиля Figma для применения через Fix; null если рекомендации нет */
+  suggestedTokenId: string | null;
 }
 
 /** Итог проверки файла на соответствие дизайн-системе */

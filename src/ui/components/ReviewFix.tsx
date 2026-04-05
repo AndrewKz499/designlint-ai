@@ -61,13 +61,12 @@ export function ReviewFix({ violations, onBack }: Props) {
   }, []);
 
   const handleFix = () => {
-    if (current === null || current.suggestedToken === null) return;
+    if (current === null || current.suggestedTokenId === null) return;
     sendMessage({
       type: 'fix-violation',
       data: {
         nodeId: current.nodeId,
-        // Заглушка: используем имя токена вместо ID до реализации маппинга в Фазе 8
-        tokenId: current.suggestedToken,
+        tokenId: current.suggestedTokenId,
         violationType: current.type,
       },
     });
@@ -143,10 +142,10 @@ export function ReviewFix({ violations, onBack }: Props) {
       {/* Кнопки действий */}
       <div style={styles.actions}>
         <button
-          style={current !== null && current.suggestedToken !== null
+          style={current !== null && current.suggestedTokenId !== null
             ? styles.btnFix
             : { ...styles.btnFix, ...styles.btnDisabled }}
-          disabled={current === null || current.suggestedToken === null}
+          disabled={current === null || current.suggestedTokenId === null}
           onClick={handleFix}
         >
           Fix

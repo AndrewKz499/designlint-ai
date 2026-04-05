@@ -24,6 +24,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     try {
       const scanResult = await scanDocument();
       const snapshot = await loadSnapshot();
+
       const detection = runDetection(scanResult, snapshot);
       figma.ui.postMessage({ type: 'scan-complete', data: scanResult });
       figma.ui.postMessage({ type: 'detection-complete', data: detection });

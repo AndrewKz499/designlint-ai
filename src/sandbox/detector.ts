@@ -67,6 +67,7 @@ export function runDetection(
       message: 'Цвет ' + color.hex + ' задан напрямую, не привязан к стилю',
       currentValue: color.hex,
       suggestedToken: null,
+      suggestedTokenId: null,
     };
 
     colorViolationIndex[color.nodeId] = violations.length;
@@ -92,6 +93,7 @@ export function runDetection(
       message: 'Текст ' + text.fontSize + 'px без привязанного стиля',
       currentValue: text.fontSize + 'px/' + text.fontFamily + '/' + text.fontWeight,
       suggestedToken: null,
+      suggestedTokenId: null,
     });
   }
 
@@ -118,6 +120,7 @@ export function runDetection(
 
       const rgb = hexToRgb(color.hex);
 
+
       // Ищем точное совпадение с токеном
       let exactMatch = null;
       for (let j = 0; j < colorTokens.length; j++) {
@@ -140,6 +143,7 @@ export function runDetection(
           message: 'Цвет ' + color.hex + ' совпадает с токеном, но стиль не привязан',
           currentValue: color.hex,
           suggestedToken: exactMatch.name,
+          suggestedTokenId: exactMatch.id,
         };
         continue;
       }
@@ -167,6 +171,7 @@ export function runDetection(
           message: 'Цвет ' + color.hex + ' похож на токен "' + similarMatch.name + '"',
           currentValue: color.hex,
           suggestedToken: similarMatch.name,
+          suggestedTokenId: similarMatch.id,
         };
       }
       // Если совпадений нет — оставляем hardcoded_color без изменений
@@ -200,6 +205,7 @@ export function runDetection(
             message: 'Размер шрифта ' + text.fontSize + 'px не входит в шкалу дизайн-системы',
             currentValue: text.fontSize + 'px',
             suggestedToken: null,
+            suggestedTokenId: null,
           });
         }
       }

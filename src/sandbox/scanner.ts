@@ -52,26 +52,38 @@ function walkNode(
 
   // --- Обработка заливок (fills) ---
   if ('fills' in node && node.fills !== figma.mixed) {
-    const fills = node.fills as ReadonlyArray<Paint>;
-    for (const fill of fills) {
-      if (fill.type !== 'SOLID') continue;
+    // Текстовые ноды с привязанным текстовым стилем не проверяем по fills:
+    // цвет текста является частью стиля и не является самостоятельным нарушением
+    let skipFills = false;
+    if (node.type === 'TEXT') {
+      const tsId = (node as TextNode).textStyleId;
+      if (typeof tsId === 'string' && tsId !== '') {
+        skipFills = true;
+      }
+    }
 
-      const { r, g, b } = fill.color;
-      const opacity = fill.opacity ?? 1;
-      const styleId = 'fillStyleId' in node ? node.fillStyleId : '';
-      const boundStyleId = typeof styleId === 'string' && styleId !== '' ? styleId : null;
-      const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId) : null;
+    if (!skipFills) {
+      const fills = node.fills as ReadonlyArray<Paint>;
+      for (const fill of fills) {
+        if (fill.type !== 'SOLID') continue;
 
-      acc.colors.push({
-        nodeId: node.id,
-        nodeName: node.name,
-        pageId,
-        pageName,
-        hex: rgbToHex(r, g, b),
-        opacity,
-        boundStyleId,
-        boundStyleName,
-      });
+        const { r, g, b } = fill.color;
+        const opacity = fill.opacity !== undefined ? fill.opacity : 1;
+        const styleId = 'fillStyleId' in node ? node.fillStyleId : '';
+        const boundStyleId = typeof styleId === 'string' && styleId !== '' ? styleId : null;
+        const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId) : null;
+
+        acc.colors.push({
+          nodeId: node.id,
+          nodeName: node.name,
+          pageId,
+          pageName,
+          hex: rgbToHex(r, g, b),
+          opacity,
+          boundStyleId,
+          boundStyleName,
+        });
+      }
     }
   }
 
