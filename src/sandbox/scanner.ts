@@ -45,6 +45,8 @@ function walkNode(
 ): void {
   // Пропускаем скрытые ноды вместе со всеми их потомками
   if (!node.visible) return;
+  // Пропускаем маркеры, созданные самим плагином
+  if (node.name === 'DesignLint Marker') return;
 
   acc.totalNodesScanned += 1;
 
