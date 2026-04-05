@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import type { PluginMessage, ScanResult, DetectionResult, Violation } from '../shared/types';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
-import { HealthScore } from './components/HealthScore';
 import { ReviewFix } from './components/ReviewFix';
 
 type Status = 'idle' | 'scanning' | 'done';
@@ -136,10 +135,8 @@ export function App() {
 
       {status === 'done' && detection !== null && (
         <>
-          {/* Круговой индикатор Health Score */}
-          <div style={styles.scoreCenter}>
-            <HealthScore score={detection.healthScore} />
-          </div>
+          {/* Health Score */}
+          <p style={styles.healthScore}>Health Score: <strong>{detection.healthScore}/100</strong></p>
 
           {/* Сводка по severity */}
           <div style={styles.summaryBlock}>
@@ -294,10 +291,9 @@ const styles = {
     margin: '0 0 16px',
     color: '#555',
   },
-  scoreCenter: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginBottom: '12px',
+  healthScore: {
+    margin: '0 0 12px',
+    fontSize: '15px',
   },
   groupBlock: {
     marginBottom: '16px',

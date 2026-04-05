@@ -1,6 +1,7 @@
 import type { Violation } from '../shared/types';
 
 const MARKER_NAME = 'DesignLint Marker';
+const GROUP_NAME = 'DesignLint Markers';
 const MAX_MARKERS = 50;
 
 // ---------------------------------------------------------------------------
@@ -70,13 +71,15 @@ export async function navigateToNode(nodeId: string, pageId: string): Promise<vo
 }
 
 /**
- * Создаёт цветные маркеры (эллипсы 8×8) рядом с нодами-нарушителями.
+ * Создаёт цветные маркеры (эллипсы 8×8) рядом с нодами-нарушителями
+ * и группирует их в папку 'DesignLint Markers'.
  * Сначала удаляет старые маркеры. Обрабатывает не более MAX_MARKERS нарушений.
  */
 export async function createMarkers(violations: Violation[]): Promise<void> {
   await clearMarkers();
 
   const limit = violations.length < MAX_MARKERS ? violations.length : MAX_MARKERS;
+  const markersCreated: SceneNode[] = [];
 
   for (let i = 0; i < limit; i++) {
     const violation = violations[i];
@@ -96,21 +99,33 @@ export async function createMarkers(violations: Violation[]): Promise<void> {
     ellipse.locked = true;
     ellipse.fills = [{ type: 'SOLID', color: markerColor(violation.severity) }];
 
-    // Добавляем маркер на текущую страницу — она уже загружена (мы только что сканировали)
-    // Если нода на другой странице, маркер всё равно попадёт на текущую
     figma.currentPage.appendChild(ellipse);
+    markersCreated.push(ellipse);
+  }
+
+  // Группируем все маркеры в одну папку для удобства управления
+  if (markersCreated.length > 0) {
+    const group = figma.group(markersCreated, figma.currentPage);
+    group.name = GROUP_NAME;
+    group.locked = true;
   }
 }
 
 /**
  * Удаляет все маркеры DesignLint со всех страниц документа.
+ * Ищет группу 'DesignLint Markers' и одиночные 'DesignLint Marker' (обратная совместимость).
  */
 export async function clearMarkers(): Promise<void> {
   const pages = figma.root.children;
   for (let i = 0; i < pages.length; i++) {
     await pages[i].loadAsync();
+
     const found: SceneNode[] = [];
+    // Группа (новый формат)
+    findByName(pages[i], GROUP_NAME, found);
+    // Одиночные маркеры (старый формат, обратная совместимость)
     findByName(pages[i], MARKER_NAME, found);
+
     for (let j = 0; j < found.length; j++) {
       found[j].remove();
     }
