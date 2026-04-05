@@ -174,7 +174,25 @@ export function runDetection(
           suggestedTokenId: similarMatch.id,
         };
       }
-      // Если совпадений нет — оставляем hardcoded_color без изменений
+      // Если точного и похожего совпадения нет — ищем ближайший токен по минимальной дистанции
+      if (similarMatch === null && colorTokens.length > 0) {
+        var bestMatch = null;
+        var bestDist = Infinity;
+        for (var k = 0; k < colorTokens.length; k++) {
+          var tokenRgb2 = hexToRgb(colorTokens[k].value);
+          var dist = Math.abs(rgb.r - tokenRgb2.r) + Math.abs(rgb.g - tokenRgb2.g) + Math.abs(rgb.b - tokenRgb2.b);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestMatch = colorTokens[k];
+          }
+        }
+        if (bestMatch !== null) {
+          // Обновляем существующий hardcoded_color — добавляем рекомендацию ближайшего токена
+          violations[existingIndex].suggestedToken = bestMatch.name;
+          violations[existingIndex].suggestedTokenId = bestMatch.id;
+          violations[existingIndex].message = 'Цвет ' + color.hex + ' задан напрямую. Ближайший токен: ' + bestMatch.name;
+        }
+      }
     }
 
     // --- Проверка размеров шрифта по шкале ---
