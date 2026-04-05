@@ -212,4 +212,13 @@ export type PluginMessage =
   /** UI просит sandbox создать маркеры на холсте для переданных нарушений */
   | { type: 'create-markers'; data: { violations: Violation[] } }
   /** UI просит sandbox удалить все маркеры с холста */
-  | { type: 'clear-markers' };
+  | { type: 'clear-markers' }
+
+  // --- Review & Fix: пошаговое исправление нарушений ---
+
+  /** UI просит sandbox применить токен/стиль к ноде */
+  | { type: 'fix-violation'; data: { nodeId: string; tokenId: string; violationType: ViolationType } }
+  /** Sandbox отвечает: исправление выполнено или не удалось */
+  | { type: 'fix-complete'; data: { nodeId: string; success: boolean } }
+  /** UI сообщает: пользователь нажал Ignore — скрыть нарушение до следующего скана */
+  | { type: 'ignore-violation'; data: { violationId: string } };

@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import type { PluginMessage, ScanResult, DetectionResult, Violation } from '../shared/types';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
 import { HealthScore } from './components/HealthScore';
+import { ReviewFix } from './components/ReviewFix';
 
 type Status = 'idle' | 'scanning' | 'done';
-type View = 'mode0' | 'scanner';
+type View = 'mode0' | 'scanner' | 'review';
 
 // Отправляет сообщение в sandbox
 function sendMessage(msg: PluginMessage): void {
@@ -75,6 +76,11 @@ export function App() {
     setCurrentView('mode0');
   };
 
+  // Возврат из Review & Fix на Dashboard (scanner)
+  const handleBackToDashboard = () => {
+    setCurrentView('scanner');
+  };
+
   // -------------------------------------------------------------------------
 
   if (currentView === 'mode0') {
@@ -83,6 +89,16 @@ export function App() {
         <h2 style={styles.title}>DesignLint AI</h2>
         <ScanDesignSystem onComplete={handleMode0Complete} />
       </div>
+    );
+  }
+
+  // Режим Review & Fix — пошаговое исправление нарушений
+  if (currentView === 'review') {
+    return (
+      <ReviewFix
+        violations={detection !== null ? detection.violations : []}
+        onBack={handleBackToDashboard}
+      />
     );
   }
 
@@ -221,6 +237,15 @@ export function App() {
             <p style={styles.hint}>Нарушений не найдено</p>
           )}
 
+          <button
+            style={detection.violations.length === 0
+              ? { ...styles.btnPrimary, ...styles.btnDisabled }
+              : styles.btnPrimary}
+            disabled={detection.violations.length === 0}
+            onClick={() => setCurrentView('review')}
+          >
+            Review &amp; Fix
+          </button>
           <button style={styles.btnSecondary} onClick={handleReset}>
             Сканировать заново
           </button>

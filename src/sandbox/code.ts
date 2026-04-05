@@ -5,6 +5,7 @@ import { scanDocument } from './scanner';
 import { discoverSources, buildSnapshot, saveSnapshot, loadSnapshot, isSnapshotStale } from './designSystemParser';
 import { runDetection } from './detector';
 import { navigateToNode, createMarkers, clearMarkers } from './markers';
+import { fixViolation } from './fixer';
 import type { PluginMessage } from '../shared/types';
 
 // Открываем UI-панель плагина
@@ -107,6 +108,19 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   if (msg.type === 'clear-markers') {
     try {
       await clearMarkers();
+    } catch (err) {
+      figma.notify('Ошибка: ' + String(err));
+    }
+    return;
+  }
+
+  // --- Review & Fix: исправление нарушения ---
+
+  // Применить стиль к ноде по выбору пользователя
+  if (msg.type === 'fix-violation') {
+    try {
+      const success = await fixViolation(msg.data.nodeId, msg.data.tokenId, msg.data.violationType);
+      figma.ui.postMessage({ type: 'fix-complete', data: { nodeId: msg.data.nodeId, success } });
     } catch (err) {
       figma.notify('Ошибка: ' + String(err));
     }
