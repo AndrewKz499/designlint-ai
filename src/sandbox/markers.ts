@@ -21,16 +21,6 @@ function findByName(node: BaseNode, name: string, result: SceneNode[]): void {
   }
 }
 
-/** Возвращает RGB-цвет маркера по severity нарушения */
-function markerColor(severity: Violation['severity']): RGB {
-  if (severity === 'critical') {
-    return { r: 1, g: 0.2, b: 0.2 };
-  }
-  if (severity === 'warning') {
-    return { r: 1, g: 0.65, b: 0 };
-  }
-  return { r: 0.6, g: 0.6, b: 0.6 };
-}
 
 // ---------------------------------------------------------------------------
 // Публичные функции
@@ -80,9 +70,14 @@ export async function createMarkers(violations: Violation[]): Promise<void> {
 
   const limit = violations.length < MAX_MARKERS ? violations.length : MAX_MARKERS;
   const markersCreated: SceneNode[] = [];
+  const seen: Record<string, boolean> = {};
 
   for (let i = 0; i < limit; i++) {
     const violation = violations[i];
+
+    // Один маркер на ноду — пропускаем дубликаты
+    if (seen[violation.nodeId] === true) continue;
+    seen[violation.nodeId] = true;
 
     const node = figma.getNodeById(violation.nodeId);
     if (node === null) continue;
@@ -96,8 +91,9 @@ export async function createMarkers(violations: Violation[]): Promise<void> {
     ellipse.y = bbox.y;
     ellipse.resize(8, 8);
     ellipse.name = MARKER_NAME;
-    ellipse.locked = true;
-    ellipse.fills = [{ type: 'SOLID', color: markerColor(violation.severity) }];
+    ellipse.fills = [{ type: 'SOLID', color: { r: 1, g: 0.23, b: 0.19 } }];
+    ellipse.strokes = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    ellipse.strokeWeight = 1.5;
 
     figma.currentPage.appendChild(ellipse);
     markersCreated.push(ellipse);

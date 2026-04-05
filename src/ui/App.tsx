@@ -12,11 +12,9 @@ function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
 }
 
-// Цвет точки по severity
-function severityDot(severity: Violation['severity']): string {
-  if (severity === 'critical') return '#FF3B30';
-  if (severity === 'warning') return '#FF9500';
-  return '#8E8E93';
+// Все точки нарушений — красные (единый стиль маркеров)
+function severityDot(_severity: Violation['severity']): string {
+  return '#FF3B30';
 }
 
 export function App() {
@@ -135,28 +133,6 @@ export function App() {
 
       {status === 'done' && detection !== null && (
         <>
-          {/* Health Score */}
-          <p style={styles.healthScore}>Health Score: <strong>{detection.healthScore}/100</strong></p>
-
-          {/* Сводка по severity */}
-          <div style={styles.summaryBlock}>
-            {detection.summary.critical > 0 && (
-              <div style={{ ...styles.summaryRow, color: '#FF3B30' }}>
-                Критичных: <strong>{detection.summary.critical}</strong>
-              </div>
-            )}
-            {detection.summary.warning > 0 && (
-              <div style={{ ...styles.summaryRow, color: '#CC7700' }}>
-                Предупреждений: <strong>{detection.summary.warning}</strong>
-              </div>
-            )}
-            {detection.summary.info > 0 && (
-              <div style={{ ...styles.summaryRow, color: '#555' }}>
-                Информационных: <strong>{detection.summary.info}</strong>
-              </div>
-            )}
-          </div>
-
           {/* Блок "По категориям" */}
           {detection.violations.length > 0 && (
             <div style={styles.groupBlock}>

@@ -230,6 +230,42 @@ export function runDetection(
     }
   }
 
+  // --- Рекомендация ближайшего текстового стиля для текстов без стиля ---
+  var textTokens = [];
+  for (var t = 0; t < snapshot.tokens.length; t++) {
+    if (snapshot.tokens[t].category === 'typography') {
+      textTokens.push(snapshot.tokens[t]);
+    }
+  }
+
+  if (textTokens.length > 0) {
+    for (var ti = 0; ti < violations.length; ti++) {
+      if (violations[ti].type === 'missing_text_style' && violations[ti].suggestedTokenId === null) {
+        // Ищем ближайший текстовый стиль по fontSize
+        var violFontSize = parseFloat(violations[ti].currentValue);
+        if (isNaN(violFontSize)) continue;
+
+        var bestText = null;
+        var bestTextDist = Infinity;
+        for (var tt = 0; tt < textTokens.length; tt++) {
+          var tokenFontSize = parseFloat(textTokens[tt].value);
+          if (isNaN(tokenFontSize)) continue;
+          var d = Math.abs(violFontSize - tokenFontSize);
+          if (d < bestTextDist) {
+            bestTextDist = d;
+            bestText = textTokens[tt];
+          }
+        }
+
+        if (bestText !== null) {
+          violations[ti].suggestedToken = bestText.name;
+          violations[ti].suggestedTokenId = bestText.id;
+          violations[ti].message = 'Текст ' + violFontSize + 'px без стиля. Ближайший: ' + bestText.name;
+        }
+      }
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Шаг 4: подсчёт сводки
   // -------------------------------------------------------------------------
