@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { PluginMessage, SnapshotSource, ReferenceSnapshot } from '../../shared/types';
 import { SOURCE_LABEL, UI } from '../../shared/strings';
 
-type Step = 'initial' | 'sources' | 'scanning' | 'result';
+type Step = 'sources' | 'scanning' | 'result';
 
 const SOURCE_NAME_MAP: Record<string, string> = {
   'Local Paint Styles': SOURCE_LABEL.paintStyles,
@@ -25,10 +25,15 @@ interface Props {
 }
 
 export function ScanDesignSystem({ onComplete }: Props) {
-  const [step, setStep] = useState<Step>('initial');
+  const [step, setStep] = useState<Step>('sources');
   const [sources, setSources] = useState<SnapshotSource[]>([]);
   const [scanStage, setScanStage] = useState<string>('');
   const [snapshot, setSnapshot] = useState<ReferenceSnapshot | null>(null);
+
+  // Автоматически запускаем поиск источников при монтировании
+  useEffect(() => {
+    sendMessage({ type: 'discover-sources' });
+  }, []);
 
   // Подписка на сообщения от sandbox
   useEffect(() => {
@@ -51,10 +56,6 @@ export function ScanDesignSystem({ onComplete }: Props) {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const handleFindSources = () => {
-    sendMessage({ type: 'discover-sources' });
-  };
-
   const handleToggleSource = (name: string) => {
     setSources((prev) =>
       prev.map((s) => (s.name === name ? { ...s, enabled: !s.enabled } : s)),
@@ -72,7 +73,8 @@ export function ScanDesignSystem({ onComplete }: Props) {
     setSnapshot(null);
     setSources([]);
     setScanStage('');
-    setStep('initial');
+    setStep('sources');
+    sendMessage({ type: 'discover-sources' });
   };
 
   const enabledCount = sources.filter((s) => s.enabled).length;
@@ -81,24 +83,13 @@ export function ScanDesignSystem({ onComplete }: Props) {
   // Рендер по состояниям
   // -------------------------------------------------------------------------
 
-  if (step === 'initial') {
-    return (
-      <div style={styles.root}>
-        <h3 style={styles.title}>Сканирование дизайн-системы</h3>
-        <p style={styles.subtitle}>
-          Найдите источники дизайн-системы, чтобы плагин знал, какие токены считать правильными.
-        </p>
-        <button style={styles.btnPrimary} onClick={handleFindSources}>
-          Найти источники
-        </button>
-      </div>
-    );
-  }
-
   if (step === 'sources') {
     return (
       <div style={styles.root}>
         <h3 style={styles.title}>Источники дизайн-системы</h3>
+        {sources.length === 0 ? (
+          <p style={styles.subtitle}>{UI.searchingSources}</p>
+        ) : (
         <ul style={styles.sourceList}>
           {sources.map((source) => (
             <li key={source.name} style={styles.sourceItem}>
@@ -115,6 +106,7 @@ export function ScanDesignSystem({ onComplete }: Props) {
             </li>
           ))}
         </ul>
+        )}
         <button
           style={enabledCount === 0 ? { ...styles.btnPrimary, ...styles.btnDisabled } : styles.btnPrimary}
           disabled={enabledCount === 0}
