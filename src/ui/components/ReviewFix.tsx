@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Violation, PluginMessage } from '../../shared/types';
+import { UI, VIOLATION_TITLE, VIOLATION_HINT } from '../../shared/strings';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -101,8 +102,8 @@ export function ReviewFix({ violations, onBack }: Props) {
   if (total === 0) {
     return (
       <div style={styles.root}>
-        <button style={styles.backBtn} onClick={onBack}>← Назад к Dashboard</button>
-        <div style={styles.doneMsg}>Все нарушения обработаны!</div>
+        <button style={styles.backBtn} onClick={onBack}>{UI.reviewBack}</button>
+        <div style={styles.doneMsg}>{UI.reviewDone}</div>
       </div>
     );
   }
@@ -114,11 +115,11 @@ export function ReviewFix({ violations, onBack }: Props) {
   return (
     <div style={styles.root}>
       {/* Кнопка возврата */}
-      <button style={styles.backBtn} onClick={onBack}>← Назад к Dashboard</button>
+      <button style={styles.backBtn} onClick={onBack}>{UI.reviewBack}</button>
 
       {/* Заголовок с счётчиком */}
       <div style={styles.header}>
-        <span style={styles.title}>Review & Fix</span>
+        <span style={styles.title}>{UI.reviewTitle}</span>
         <span style={styles.counter}>{safeIndex + 1} из {total}</span>
       </div>
 
@@ -129,11 +130,12 @@ export function ReviewFix({ violations, onBack }: Props) {
             <span style={{ ...styles.dot, background: severityColor(current) }} />
             <span style={styles.nodeName}>{current.nodeName}</span>
           </div>
-          <div style={styles.message}>{current.message}</div>
+          <div style={styles.violationType}>{VIOLATION_TITLE[current.type]}</div>
+          <div style={styles.message}>{VIOLATION_HINT[current.type]}</div>
           <div style={styles.currentValue}>{current.currentValue}</div>
           {current.suggestedToken !== null && (
             <div style={styles.suggestion}>
-              Рекомендация: {current.suggestedToken}
+              {UI.reviewSuggested}: {current.suggestedToken}
             </div>
           )}
         </div>
@@ -148,13 +150,13 @@ export function ReviewFix({ violations, onBack }: Props) {
           disabled={current === null || current.suggestedTokenId === null}
           onClick={handleFix}
         >
-          Fix
+          {UI.reviewFix}
         </button>
         <button style={styles.btnSkip} onClick={handleSkip}>
-          Skip
+          {UI.reviewSkip}
         </button>
         <button style={styles.btnIgnore} onClick={handleIgnore}>
-          Ignore
+          {UI.reviewIgnore}
         </button>
       </div>
 
@@ -240,9 +242,14 @@ const styles = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
   },
+  violationType: {
+    fontWeight: 600,
+    fontSize: '13px',
+  },
   message: {
-    color: '#333',
+    color: '#555',
     lineHeight: 1.4,
+    fontSize: '12px',
   },
   currentValue: {
     color: '#888',

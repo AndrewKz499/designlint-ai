@@ -232,9 +232,11 @@ export function runDetection(
 
   // --- Рекомендация ближайшего текстового стиля для текстов без стиля ---
   var textTokens = [];
-  for (var t = 0; t < snapshot.tokens.length; t++) {
-    if (snapshot.tokens[t].category === 'typography') {
-      textTokens.push(snapshot.tokens[t]);
+  if (snapshot) {
+    for (var t = 0; t < snapshot.tokens.length; t++) {
+      if (snapshot.tokens[t].category === 'typography') {
+        textTokens.push(snapshot.tokens[t]);
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 // Главный файл sandbox — выполняется в среде Figma (доступ к Figma API)
 // Связь с UI через postMessage / onmessage
 
+import '@figma/plugin-typings';
 import { scanDocument } from './scanner';
 import { discoverSources, buildSnapshot, saveSnapshot, loadSnapshot, isSnapshotStale } from './designSystemParser';
 import { runDetection } from './detector';

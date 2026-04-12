@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
 import type { PluginMessage, SnapshotSource, ReferenceSnapshot } from '../../shared/types';
+import { SOURCE_LABEL, UI } from '../../shared/strings';
 
 type Step = 'initial' | 'sources' | 'scanning' | 'result';
+
+const SOURCE_NAME_MAP: Record<string, string> = {
+  'Local Paint Styles': SOURCE_LABEL.paintStyles,
+  'Local Text Styles':  SOURCE_LABEL.textStyles,
+};
+
+function displaySourceName(name: string): string {
+  if (SOURCE_NAME_MAP[name] !== undefined) return SOURCE_NAME_MAP[name];
+  if (name.toLowerCase().includes('variable')) return SOURCE_LABEL.variables;
+  return name;
+}
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -97,7 +109,7 @@ export function ScanDesignSystem({ onComplete }: Props) {
                   onChange={() => handleToggleSource(source.name)}
                   style={styles.checkbox}
                 />
-                <span style={styles.sourceName}>{source.name}</span>
+                <span style={styles.sourceName}>{displaySourceName(source.name)}</span>
                 <span style={styles.sourceCount}>({source.tokenCount})</span>
               </label>
             </li>
@@ -147,8 +159,8 @@ export function ScanDesignSystem({ onComplete }: Props) {
       <ul style={styles.resultList}>
         <li>Цветовых токенов: <strong>{colorCount}</strong></li>
         <li>Текстовых токенов: <strong>{typographyCount}</strong></li>
-        <li>Spacing: <strong>{spacingCount}</strong></li>
-        <li>Radius: <strong>{radiusCount}</strong></li>
+        <li>{UI.sdSpacingLabel}: <strong>{spacingCount}</strong></li>
+        <li>{UI.sdRadiusLabel}: <strong>{radiusCount}</strong></li>
       </ul>
 
       {issueCount > 0 && (

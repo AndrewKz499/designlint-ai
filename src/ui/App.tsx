@@ -1,6 +1,8 @@
 // Главный компонент UI плагина
 import { useState, useEffect } from 'react';
 import type { PluginMessage, ScanResult, DetectionResult, Violation } from '../shared/types';
+import { VIOLATION_TITLE, VIOLATION_CATEGORY, CATEGORY_META, UI } from '../shared/strings';
+import type { Category } from '../shared/strings';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
 import { ReviewFix } from './components/ReviewFix';
 
@@ -138,23 +140,15 @@ export function App() {
             <div style={styles.groupBlock}>
               <div style={styles.groupTitle}>Категории</div>
               {((): React.ReactNode => {
-                const counts: Partial<Record<string, number>> = {};
+                const counts: Partial<Record<Category, number>> = {};
                 for (let i = 0; i < detection.violations.length; i++) {
-                  const t = detection.violations[i].type;
-                  counts[t] = (counts[t] || 0) + 1;
+                  const cat = VIOLATION_CATEGORY[detection.violations[i].type];
+                  counts[cat] = (counts[cat] || 0) + 1;
                 }
-                const typeLabels: Record<string, string> = {
-                  hardcoded_color:      '🎨 Hardcoded цвета',
-                  missing_text_style:   '📝 Без текстового стиля',
-                  detached_style:       '🔗 Отвязанный стиль',
-                  similar_to_token:     '🔍 Похожий на токен',
-                  nonstandard_font_size:'📏 Нестандартный размер',
-                  spacing_off_scale:    '📐 Spacing вне шкалы',
-                };
-                return Object.keys(counts).map((type) => (
-                  <div key={type} style={styles.groupRow}>
-                    <span>{typeLabels[type] || type}</span>
-                    <strong>{counts[type]}</strong>
+                return (Object.keys(counts) as Category[]).map((cat) => (
+                  <div key={cat} style={styles.groupRow}>
+                    <span>{CATEGORY_META[cat].emoji} {CATEGORY_META[cat].label}</span>
+                    <strong>{counts[cat]}</strong>
                   </div>
                 ));
               })()}
@@ -195,8 +189,8 @@ export function App() {
                     style={{ ...styles.dot, background: severityDot(v.severity) }}
                   />
                   <div style={styles.violationBody}>
-                    <div style={styles.violationName}>{v.nodeName}</div>
-                    <div style={styles.violationMsg}>{v.message}</div>
+                    <div style={styles.violationName}>{VIOLATION_TITLE[v.type]}</div>
+                    <div style={styles.violationMsg}>{v.nodeName}</div>
                     {v.suggestedToken !== null && (
                       <div style={styles.suggestion}>→ {v.suggestedToken}</div>
                     )}
@@ -207,7 +201,7 @@ export function App() {
           )}
 
           {detection.violations.length === 0 && (
-            <p style={styles.hint}>Нарушений не найдено</p>
+            <p style={styles.hint}>{UI.dashEmpty}</p>
           )}
 
           <button
@@ -217,7 +211,7 @@ export function App() {
             disabled={detection.violations.length === 0}
             onClick={() => setCurrentView('review')}
           >
-            Review &amp; Fix
+            {UI.dashReviewOne}
           </button>
           <button style={styles.btnSecondary} onClick={handleReset}>
             Сканировать заново

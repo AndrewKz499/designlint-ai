@@ -9,10 +9,7 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "src",
-    "typeRoots": [
-      "./node_modules/@types",
-      "./node_modules/@figma"
-    ]
+    "lib": ["ES2020", "DOM"]
   },
   "include": ["src/**/*"]
 }

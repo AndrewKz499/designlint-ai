@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => {
           formats: ["iife"],
           fileName: () => "code.js",
         },
+        rollupOptions: {
+          external: ['@figma/plugin-typings'],
+        },
       },
     };
   }
