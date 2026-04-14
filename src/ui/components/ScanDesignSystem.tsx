@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { PluginMessage, SnapshotSource, ReferenceSnapshot } from '../../shared/types';
+import type { PluginMessage, SnapshotSource, ReferenceSnapshot, ScanScope } from '../../shared/types';
 import { SOURCE_LABEL, UI } from '../../shared/strings';
+import { ScopeSelector } from './ScopeSelector';
 
 type Step = 'sources' | 'scanning' | 'result';
 
@@ -22,9 +23,11 @@ function sendMessage(msg: PluginMessage): void {
 interface Props {
   /** Вызывается когда пользователь готов перейти к аудиту */
   onComplete: () => void;
+  scope: ScanScope;
+  onScopeChange: (scope: ScanScope) => void;
 }
 
-export function ScanDesignSystem({ onComplete }: Props) {
+export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
   const [step, setStep] = useState<Step>('sources');
   const [sources, setSources] = useState<SnapshotSource[]>([]);
   const [scanStage, setScanStage] = useState<string>('');
@@ -163,6 +166,9 @@ export function ScanDesignSystem({ onComplete }: Props) {
         </div>
       )}
 
+      <div style={{ marginTop: 12, marginBottom: 12 }}>
+        <ScopeSelector value={scope} onChange={onScopeChange} />
+      </div>
       <button style={styles.btnPrimary} onClick={onComplete}>
         Запустить аудит
       </button>

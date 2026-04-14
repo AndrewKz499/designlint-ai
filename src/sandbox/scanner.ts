@@ -1,4 +1,4 @@
-import type { ScannedColor, ScannedText, ScanResult } from '../shared/types';
+import type { ScannedColor, ScannedText, ScanResult, ScanScope } from '../shared/types';
 
 // ---------------------------------------------------------------------------
 // Вспомогательные функции
@@ -137,15 +137,11 @@ function walkNode(
 // ---------------------------------------------------------------------------
 
 /**
- * Сканирует весь Figma-документ: обходит все страницы и все ноды на каждой из них.
- * Отправляет прогресс в UI после завершения каждой страницы.
+ * Сканирует Figma-документ в соответствии с выбранной областью scope.
  * Возвращает ScanResult с найденными цветами, текстами и статистикой.
  */
-export async function scanDocument(): Promise<ScanResult> {
+export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
   const startTime = Date.now();
-
-  const pages = figma.root.children; // PageNode[]
-  const totalPages = pages.length;
 
   const acc: ScanAccumulator = {
     colors: [],
@@ -153,21 +149,58 @@ export async function scanDocument(): Promise<ScanResult> {
     totalNodesScanned: 0,
   };
 
-  for (let i = 0; i < totalPages; i++) {
-    const page = pages[i];
+  var pagesScanned = 1;
 
-    // Загружаем страницу перед обходом (необходимо для неактивных страниц)
-    await page.loadAsync();
-
-    for (const node of page.children) {
-      walkNode(node, page.id, page.name, acc);
+  if (scope === 'page') {
+    // Обход всех страниц документа
+    var pages = figma.root.children;
+    pagesScanned = pages.length;
+    for (var pi = 0; pi < pages.length; pi++) {
+      var page = pages[pi];
+      await (page as PageNode).loadAsync();
+      var pageChildren = (page as PageNode).children;
+      for (var ci = 0; ci < pageChildren.length; ci++) {
+        walkNode(pageChildren[ci] as SceneNode, page.id, page.name, acc);
+      }
+      figma.ui.postMessage({
+        type: 'scan-progress',
+        data: { current: pi + 1, total: pages.length },
+      });
     }
-
-    // Отправляем прогресс в UI
-    figma.ui.postMessage({
-      type: 'scan-progress',
-      data: { current: i + 1, total: totalPages },
-    });
+  } else if (scope === 'selection') {
+    // Обход только выделенных нод и их детей
+    var sel = figma.currentPage.selection;
+    for (var si = 0; si < sel.length; si++) {
+      walkNode(sel[si], figma.currentPage.id, figma.currentPage.name, acc);
+    }
+  } else if (scope === 'section') {
+    // Все ноды типа SECTION на активной странице
+    var allChildren = figma.currentPage.children;
+    for (var ni = 0; ni < allChildren.length; ni++) {
+      if (allChildren[ni].type === 'SECTION') {
+        walkNode(allChildren[ni] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc);
+      }
+    }
+  } else if (scope === 'topFrames') {
+    // Все FRAME верхнего уровня активной страницы
+    var topChildren = figma.currentPage.children;
+    for (var fi = 0; fi < topChildren.length; fi++) {
+      if (topChildren[fi].type === 'FRAME') {
+        walkNode(topChildren[fi] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc);
+      }
+    }
+  } else {
+    // Fallback — вся страница документа
+    var fbPages = figma.root.children;
+    pagesScanned = fbPages.length;
+    for (var fpi = 0; fpi < fbPages.length; fpi++) {
+      var fbPage = fbPages[fpi];
+      await (fbPage as PageNode).loadAsync();
+      var fbChildren = (fbPage as PageNode).children;
+      for (var fci = 0; fci < fbChildren.length; fci++) {
+        walkNode(fbChildren[fci] as SceneNode, fbPage.id, fbPage.name, acc);
+      }
+    }
   }
 
   const scanDurationMs = Math.round(Date.now() - startTime);
@@ -177,6 +210,6 @@ export async function scanDocument(): Promise<ScanResult> {
     texts: acc.texts,
     totalNodesScanned: acc.totalNodesScanned,
     scanDurationMs,
-    pagesScanned: totalPages,
+    pagesScanned,
   };
 }

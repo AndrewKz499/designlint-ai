@@ -1,10 +1,11 @@
 // Главный компонент UI плагина
 import { useState, useEffect } from 'react';
-import type { PluginMessage, ScanResult, DetectionResult, Violation } from '../shared/types';
+import type { PluginMessage, ScanResult, DetectionResult, Violation, ScanScope } from '../shared/types';
 import { VIOLATION_TITLE, VIOLATION_CATEGORY, CATEGORY_META, UI } from '../shared/strings';
 import type { Category } from '../shared/strings';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
 import { ReviewFix } from './components/ReviewFix';
+import { ScopeSelector } from './components/ScopeSelector';
 
 type Status = 'idle' | 'scanning' | 'done';
 type View = 'mode0' | 'scanner' | 'review';
@@ -25,6 +26,7 @@ export function App() {
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [detection, setDetection] = useState<DetectionResult | null>(null);
+  const [scope, setScope] = useState<ScanScope>('selection');
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -52,7 +54,7 @@ export function App() {
     setProgress(null);
     setResult(null);
     setDetection(null);
-    sendMessage({ type: 'start-scan' });
+    sendMessage({ type: 'start-scan', data: { scope } });
   };
 
   const handleStartScan = () => {
@@ -60,7 +62,7 @@ export function App() {
     setProgress(null);
     setResult(null);
     setDetection(null);
-    sendMessage({ type: 'start-scan' });
+    sendMessage({ type: 'start-scan', data: { scope } });
   };
 
   const handleReset = () => {
@@ -86,7 +88,7 @@ export function App() {
     return (
       <div style={styles.root}>
         <h2 style={styles.title}>DesignLint AI</h2>
-        <ScanDesignSystem onComplete={handleMode0Complete} />
+        <ScanDesignSystem onComplete={handleMode0Complete} scope={scope} onScopeChange={setScope} />
       </div>
     );
   }
@@ -114,6 +116,9 @@ export function App() {
       {status === 'idle' && (
         <>
           <p style={styles.hint}>Готов к сканированию</p>
+          <div style={{ marginTop: 8, marginBottom: 8 }}>
+            <ScopeSelector value={scope} onChange={setScope} />
+          </div>
           <button style={styles.btnPrimary} onClick={handleStartScan}>
             Сканировать файл
           </button>

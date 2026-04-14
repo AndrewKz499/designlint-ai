@@ -117,6 +117,13 @@ export interface ReferenceSnapshot {
   hash: string;
 }
 
+// Область сканирования: что обходит scanner
+export type ScanScope =
+  | 'selection'   // только выделенные ноды и их дети
+  | 'section'     // все SECTION-ноды активной страницы
+  | 'topFrames'   // все frame верхнего уровня активной страницы
+  | 'page';       // вся активная страница целиком
+
 /** Тип нарушения, обнаруженного в Figma-файле */
 export type ViolationType =
   /** Цвет задан напрямую, нет привязки к стилю или токену */
@@ -179,7 +186,7 @@ export type PluginMessage =
   /** Ответ на ping */
   | { type: 'pong' }
   /** UI запрашивает запуск сканирования */
-  | { type: 'start-scan' }
+  | { type: 'start-scan'; data?: { scope?: ScanScope } }
   /** Промежуточный прогресс сканирования: sandbox → UI */
   | { type: 'scan-progress'; data: { current: number; total: number } }
   /** Сканирование завершено, данные готовы: sandbox → UI */

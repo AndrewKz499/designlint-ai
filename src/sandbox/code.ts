@@ -23,7 +23,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   // Запуск сканирования документа (Mode 1)
   if (msg.type === 'start-scan') {
     try {
-      const scanResult = await scanDocument();
+      const scope = (msg.data && msg.data.scope) ? msg.data.scope : 'selection';
+      const scanResult = await scanDocument(scope);
       const snapshot = await loadSnapshot();
 
       const detection = runDetection(scanResult, snapshot);

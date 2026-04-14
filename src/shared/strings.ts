@@ -88,6 +88,7 @@ export const UI = {
   reviewCurrent:    'Сейчас',
   reviewSuggested:  'Рекомендуется',
 
+  scopeTitle:       'Область проверки',
   searchingSources: 'Ищем источники…',
   sdSpacingLabel:   'Отступы',
   sdRadiusLabel:    'Скругления',
