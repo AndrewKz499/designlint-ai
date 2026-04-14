@@ -205,11 +205,43 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
 
   const scanDurationMs = Math.round(Date.now() - startTime);
 
+  var scopeLabel: string;
+  if (scope === 'page') {
+    scopeLabel = figma.currentPage.name;
+  } else if (scope === 'selection') {
+    var selNodes = figma.currentPage.selection;
+    if (selNodes.length === 0) {
+      scopeLabel = 'Выделение (пусто)';
+    } else if (selNodes.length === 1) {
+      scopeLabel = selNodes[0].name;
+    } else {
+      scopeLabel = 'Выделение (' + selNodes.length + ')';
+    }
+  } else if (scope === 'section') {
+    var sects = figma.currentPage.children.filter(function (n) {
+      return n.type === 'SECTION';
+    });
+    if (sects.length === 1) {
+      scopeLabel = sects[0].name;
+    } else {
+      scopeLabel = 'Sections (' + sects.length + ')';
+    }
+  } else if (scope === 'topFrames') {
+    var frs = figma.currentPage.children.filter(function (n) {
+      return n.type === 'FRAME';
+    });
+    scopeLabel = 'Фреймы страницы (' + frs.length + ')';
+  } else {
+    scopeLabel = figma.currentPage.name;
+  }
+
   return {
     colors: acc.colors,
     texts: acc.texts,
     totalNodesScanned: acc.totalNodesScanned,
     scanDurationMs,
     pagesScanned,
+    scopeLabel,
+    scope,
   };
 }

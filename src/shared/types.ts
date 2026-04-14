@@ -47,6 +47,10 @@ export interface ScanResult {
   scanDurationMs: number;
   /** Количество просканированных страниц */
   pagesScanned: number;
+  /** Что именно было проверено — для отображения в UI-чипе */
+  scopeLabel: string;
+  /** Область сканирования (режим, выбранный пользователем) */
+  scope: ScanScope;
 }
 
 /** Категория токена дизайн-системы */

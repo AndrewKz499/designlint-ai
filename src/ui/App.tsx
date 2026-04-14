@@ -140,6 +140,12 @@ export function App() {
 
       {status === 'done' && detection !== null && (
         <>
+          {result && (
+            <div style={styles.contextChip}>
+              {UI.dashContextBadge(result.scopeLabel, result.totalNodesScanned)}
+            </div>
+          )}
+
           {/* Блок "По категориям" */}
           {detection.violations.length > 0 && (
             <div style={styles.groupBlock}>
@@ -363,4 +369,13 @@ const styles = {
     fontWeight: 500,
     cursor: 'pointer',
   },
+  contextChip: {
+    display: 'inline-block',
+    padding: '4px 10px',
+    background: '#F3F4F6',
+    borderRadius: '6px',
+    fontSize: '11px',
+    color: '#555',
+    marginBottom: '12px',
+  } as React.CSSProperties,
 } satisfies Record<string, React.CSSProperties>;
