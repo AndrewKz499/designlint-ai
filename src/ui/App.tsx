@@ -1,6 +1,6 @@
 // Главный компонент UI плагина
 import { useState, useEffect } from 'react';
-import type { PluginMessage, ScanResult, DetectionResult, Violation, ScanScope } from '../shared/types';
+import type { PluginMessage, ScanResult, DetectionResult, ScanScope } from '../shared/types';
 import { VIOLATION_TITLE, VIOLATION_CATEGORY, CATEGORY_META, UI } from '../shared/strings';
 import type { Category } from '../shared/strings';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
@@ -18,11 +18,6 @@ type View = 'mode0' | 'scanner' | 'review';
 // Отправляет сообщение в sandbox
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
-}
-
-// Все точки нарушений — красные (единый стиль маркеров)
-function severityDot(_severity: Violation['severity']): string {
-  return '#FF3B30';
 }
 
 export function App() {
@@ -167,77 +162,64 @@ export function App() {
           {detection.violations.length > 0 && (
             <div style={{ marginBottom: spacing.s300 }}>
               {((): React.ReactNode => {
-                const counts: Partial<Record<Category, number>> = {};
+                // Группируем нарушения по категориям
+                const grouped: Partial<Record<Category, typeof detection.violations>> = {};
                 for (let i = 0; i < detection.violations.length; i++) {
-                  const cat = VIOLATION_CATEGORY[detection.violations[i].type];
-                  counts[cat] = (counts[cat] || 0) + 1;
+                  const v = detection.violations[i];
+                  const cat = VIOLATION_CATEGORY[v.type];
+                  if (!grouped[cat]) grouped[cat] = [];
+                  grouped[cat]!.push(v);
                 }
-                return (Object.keys(counts) as Category[]).map((cat) => (
-                  <div key={cat} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: `${spacing.s200}px 0`,
-                  }}>
-                    <Checkbox
-                      checked={selectedCategories.has(cat)}
-                      onChange={(checked) => {
-                        const next = new Set(selectedCategories);
-                        if (checked) { next.add(cat); } else { next.delete(cat); }
-                        setSelectedCategories(next);
-                      }}
-                      label={CATEGORY_META[cat].emoji + ' ' + CATEGORY_META[cat].label}
-                    />
-                    <strong style={{ color: colors.textDefault, fontSize: typography.body.fontSize }}>{counts[cat]}</strong>
-                  </div>
-                ));
+                return (Object.keys(grouped) as Category[]).map((cat) => {
+                  const items = grouped[cat]!;
+                  const isSelected = selectedCategories.has(cat);
+                  return (
+                    <div key={cat} style={{ marginBottom: spacing.s200 }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: `${spacing.s200}px 0`,
+                      }}>
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={(checked) => {
+                            const next = new Set(selectedCategories);
+                            if (checked) { next.add(cat); } else { next.delete(cat); }
+                            setSelectedCategories(next);
+                          }}
+                          label={CATEGORY_META[cat].emoji + ' ' + CATEGORY_META[cat].label}
+                        />
+                        <strong style={{ color: colors.textDefault, fontSize: typography.body.fontSize }}>{items.length}</strong>
+                      </div>
+                      {/* Список нарушений внутри категории */}
+                      <div style={{ paddingLeft: 28 }}>
+                        {items.map((v, idx) => (
+                          <div
+                            key={v.id}
+                            style={{
+                              padding: `${spacing.s200}px 0`,
+                              fontSize: 14,
+                              color: isSelected ? colors.textBody : colors.textMuted,
+                              cursor: 'pointer',
+                              borderBottom: idx < items.length - 1 ? `1px solid ${colors.borderDefault}` : 'none',
+                            }}
+                            onClick={() => sendMessage({ type: 'navigate-to-node', data: { nodeId: v.nodeId, pageId: v.pageId } })}
+                            title="Перейти к элементу"
+                          >
+                            <div>{VIOLATION_TITLE[v.type]}</div>
+                            <div style={{ color: colors.textMuted, fontSize: 13 }}>
+                              {v.nodeName}
+                              {v.suggestedToken !== null && <span style={{ color: colors.accentBlue }}> → {v.suggestedToken}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                });
               })()}
             </div>
-          )}
-
-          {/* Блок "По страницам" */}
-          {detection.violations.length > 0 && (
-            <div style={styles.groupBlock}>
-              <div style={styles.groupTitle}>Страницы</div>
-              {((): React.ReactNode => {
-                const pageCounts: Record<string, number> = {};
-                for (let i = 0; i < detection.violations.length; i++) {
-                  const name = detection.violations[i].pageName;
-                  pageCounts[name] = (pageCounts[name] || 0) + 1;
-                }
-                return Object.keys(pageCounts).map((name) => (
-                  <div key={name} style={styles.groupRow}>
-                    <span>{name}</span>
-                    <strong>{pageCounts[name]}</strong>
-                  </div>
-                ));
-              })()}
-            </div>
-          )}
-
-          {/* Список нарушений — первые 20 */}
-          {detection.violations.length > 0 && (
-            <ul style={styles.violationList}>
-              {detection.violations.slice(0, 20).map((v) => (
-                <li
-                  key={v.id}
-                  style={styles.violationItem}
-                  onClick={() => sendMessage({ type: 'navigate-to-node', data: { nodeId: v.nodeId, pageId: v.pageId } })}
-                  title="Перейти к элементу"
-                >
-                  <span
-                    style={{ ...styles.dot, background: severityDot(v.severity) }}
-                  />
-                  <div style={styles.violationBody}>
-                    <div style={styles.violationName}>{VIOLATION_TITLE[v.type]}</div>
-                    <div style={styles.violationMsg}>{v.nodeName}</div>
-                    {v.suggestedToken !== null && (
-                      <div style={styles.suggestion}>→ {v.suggestedToken}</div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
           )}
 
           {detection.violations.length === 0 && (
@@ -272,133 +254,8 @@ const styles = {
     fontSize: '13px',
     color: '#1a1a1a',
   },
-  titleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '16px',
-  },
-  title: {
-    margin: 0,
-    fontSize: '16px',
-    fontWeight: 600,
-  },
-  btnIcon: {
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '16px',
-    padding: '2px 4px',
-    lineHeight: 1,
-  },
   hint: {
     margin: '0 0 16px',
     color: '#555',
   },
-  healthScore: {
-    margin: '0 0 12px',
-    fontSize: '15px',
-  },
-  groupBlock: {
-    marginBottom: '16px',
-  },
-  groupTitle: {
-    fontWeight: 600,
-    fontSize: '13px',
-    marginBottom: '6px',
-  },
-  groupRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '3px 0',
-    fontSize: '13px',
-  },
-  summaryBlock: {
-    marginBottom: '12px',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '4px',
-  },
-  summaryRow: {
-    fontSize: '13px',
-  },
-  violationList: {
-    listStyle: 'none',
-    padding: 0,
-    margin: '0 0 16px',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
-    maxHeight: '260px',
-    overflowY: 'auto' as const,
-  },
-  violationItem: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '8px',
-    cursor: 'pointer',
-  },
-  dot: {
-    flexShrink: 0,
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    marginTop: '3px',
-  },
-  violationBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  violationName: {
-    fontWeight: 500,
-    marginBottom: '2px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
-  },
-  violationMsg: {
-    color: '#444',
-    lineHeight: 1.4,
-  },
-  suggestion: {
-    color: '#0D99FF',
-    marginTop: '2px',
-  },
-  btnPrimary: {
-    display: 'block',
-    width: '100%',
-    padding: '10px 0',
-    background: '#0D99FF',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: 'pointer',
-  },
-  btnDisabled: {
-    background: '#a0cff7',
-    cursor: 'not-allowed',
-  },
-  btnSecondary: {
-    display: 'block',
-    width: '100%',
-    padding: '10px 0',
-    background: 'transparent',
-    color: '#0D99FF',
-    border: '1px solid #0D99FF',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: 'pointer',
-  },
-  contextChip: {
-    display: 'inline-block',
-    padding: '4px 10px',
-    background: '#F3F4F6',
-    borderRadius: '6px',
-    fontSize: '11px',
-    color: '#555',
-    marginBottom: '12px',
-  } as React.CSSProperties,
 } satisfies Record<string, React.CSSProperties>;
