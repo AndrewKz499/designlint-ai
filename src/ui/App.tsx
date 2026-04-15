@@ -9,6 +9,7 @@ import { ScopeSelector } from './components/ScopeSelector';
 import { Header } from './components/ui/Header';
 import { Button } from './components/ui/Button';
 import { Tag } from './components/ui/Tag';
+import { Checkbox } from './components/ui/Checkbox';
 import { colors, typography, spacing } from './tokens';
 
 type Status = 'idle' | 'scanning' | 'done';
@@ -31,6 +32,17 @@ export function App() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [detection, setDetection] = useState<DetectionResult | null>(null);
   const [scope, setScope] = useState<ScanScope>('selection');
+  const [selectedCategories, setSelectedCategories] = useState<Set<Category>>(new Set());
+
+  useEffect(() => {
+    if (detection && detection.violations.length > 0) {
+      const cats = new Set<Category>();
+      for (let i = 0; i < detection.violations.length; i++) {
+        cats.add(VIOLATION_CATEGORY[detection.violations[i].type]);
+      }
+      setSelectedCategories(cats);
+    }
+  }, [detection]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -152,10 +164,8 @@ export function App() {
             </div>
           )}
 
-          {/* Блок "По категориям" */}
           {detection.violations.length > 0 && (
-            <div style={styles.groupBlock}>
-              <div style={styles.groupTitle}>Категории</div>
+            <div style={{ marginBottom: spacing.s300 }}>
               {((): React.ReactNode => {
                 const counts: Partial<Record<Category, number>> = {};
                 for (let i = 0; i < detection.violations.length; i++) {
@@ -163,9 +173,22 @@ export function App() {
                   counts[cat] = (counts[cat] || 0) + 1;
                 }
                 return (Object.keys(counts) as Category[]).map((cat) => (
-                  <div key={cat} style={styles.groupRow}>
-                    <span>{CATEGORY_META[cat].emoji} {CATEGORY_META[cat].label}</span>
-                    <strong>{counts[cat]}</strong>
+                  <div key={cat} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: `${spacing.s200}px 0`,
+                  }}>
+                    <Checkbox
+                      checked={selectedCategories.has(cat)}
+                      onChange={(checked) => {
+                        const next = new Set(selectedCategories);
+                        if (checked) { next.add(cat); } else { next.delete(cat); }
+                        setSelectedCategories(next);
+                      }}
+                      label={CATEGORY_META[cat].emoji + ' ' + CATEGORY_META[cat].label}
+                    />
+                    <strong style={{ color: colors.textDefault, fontSize: typography.body.fontSize }}>{counts[cat]}</strong>
                   </div>
                 ));
               })()}
