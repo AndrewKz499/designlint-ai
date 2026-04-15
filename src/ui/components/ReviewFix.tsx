@@ -9,9 +9,10 @@ function sendMessage(msg: PluginMessage): void {
 interface Props {
   violations: Violation[];
   onBack: () => void;
+  onFixApplied?: (nodeId: string) => void;
 }
 
-export function ReviewFix({ violations, onBack }: Props) {
+export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [ignoredIds, setIgnoredIds] = useState<Set<string>>(new Set());
   const [fixedIds, setFixedIds] = useState<Set<string>>(new Set());
@@ -37,6 +38,7 @@ export function ReviewFix({ violations, onBack }: Props) {
           next.add(msg.data.nodeId);
           return next;
         });
+        if (onFixApplied) onFixApplied(msg.data.nodeId);
       }
     };
     window.addEventListener('message', handler);

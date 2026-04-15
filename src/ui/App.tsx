@@ -93,6 +93,14 @@ export function App() {
     setCurrentView('scanner');
   };
 
+  const handleFixApplied = (nodeId: string) => {
+    setDetection((prev) => {
+      if (!prev) return prev;
+      const updated = prev.violations.filter((v) => v.nodeId !== nodeId);
+      return { ...prev, violations: updated };
+    });
+  };
+
   // -------------------------------------------------------------------------
 
   if (currentView === 'mode0') {
@@ -110,6 +118,7 @@ export function App() {
       <ReviewFix
         violations={detection !== null ? detection.violations : []}
         onBack={handleBackToDashboard}
+        onFixApplied={handleFixApplied}
       />
     );
   }
