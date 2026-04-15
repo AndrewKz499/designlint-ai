@@ -6,6 +6,8 @@ import type { Category } from '../shared/strings';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
 import { ReviewFix } from './components/ReviewFix';
 import { ScopeSelector } from './components/ScopeSelector';
+import { Header } from './components/ui/Header';
+import { Button } from './components/ui/Button';
 
 type Status = 'idle' | 'scanning' | 'done';
 type View = 'mode0' | 'scanner' | 'review';
@@ -87,7 +89,7 @@ export function App() {
   if (currentView === 'mode0') {
     return (
       <div style={styles.root}>
-        <h2 style={styles.title}>DesignLint AI</h2>
+        <Header />
         <ScanDesignSystem onComplete={handleMode0Complete} scope={scope} onScopeChange={setScope} />
       </div>
     );
@@ -106,12 +108,7 @@ export function App() {
   // currentView === 'scanner'
   return (
     <div style={styles.root}>
-      <div style={styles.titleRow}>
-        <h2 style={styles.title}>DesignLint AI</h2>
-        <button style={styles.btnIcon} onClick={handleGoToMode0} title="Настройка дизайн-системы">
-          ⚙️
-        </button>
-      </div>
+      <Header onSettingsClick={handleGoToMode0} />
 
       {status === 'idle' && (
         <>
@@ -119,9 +116,7 @@ export function App() {
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             <ScopeSelector value={scope} onChange={setScope} />
           </div>
-          <button style={styles.btnPrimary} onClick={handleStartScan}>
-            Сканировать файл
-          </button>
+          <Button onClick={handleStartScan}>Сканировать файл</Button>
         </>
       )}
 
@@ -132,9 +127,7 @@ export function App() {
               ? UI.scanningWithCount(progress.current)
               : UI.scanningIdle}
           </p>
-          <button style={{ ...styles.btnPrimary, ...styles.btnDisabled }} disabled>
-            Сканировать файл
-          </button>
+          <Button disabled>Сканировать файл</Button>
         </>
       )}
 
@@ -215,18 +208,12 @@ export function App() {
             <p style={styles.hint}>{UI.dashEmpty}</p>
           )}
 
-          <button
-            style={detection.violations.length === 0
-              ? { ...styles.btnPrimary, ...styles.btnDisabled }
-              : styles.btnPrimary}
-            disabled={detection.violations.length === 0}
-            onClick={() => setCurrentView('review')}
-          >
-            {UI.dashReviewOne}
-          </button>
-          <button style={styles.btnSecondary} onClick={handleReset}>
-            Сканировать заново
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Button disabled={detection.violations.length === 0} onClick={() => setCurrentView('review')}>
+              {UI.dashReviewOne}
+            </Button>
+            <Button variant="secondary" onClick={handleReset}>Сканировать заново</Button>
+          </div>
         </>
       )}
 
