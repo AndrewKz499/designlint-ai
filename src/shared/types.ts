@@ -236,4 +236,11 @@ export type PluginMessage =
   /** Sandbox отвечает: исправление выполнено или не удалось */
   | { type: 'fix-complete'; data: { nodeId: string; success: boolean } }
   /** UI сообщает: пользователь нажал Ignore — скрыть нарушение до следующего скана */
-  | { type: 'ignore-violation'; data: { violationId: string } };
+  | { type: 'ignore-violation'; data: { violationId: string } }
+
+  // --- API-ключ ---
+
+  /** UI запрашивает API-ключ из clientStorage */
+  | { type: 'get-api-key' }
+  /** Sandbox возвращает API-ключ (или null если не задан) */
+  | { type: 'api-key-response'; data: { key: string | null } };
