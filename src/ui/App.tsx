@@ -128,9 +128,9 @@ export function App() {
       {status === 'scanning' && (
         <>
           <p style={styles.hint}>
-            {progress
-              ? `Сканирование... Страница ${progress.current} из ${progress.total}`
-              : 'Сканирование...'}
+            {progress && progress.current > 0
+              ? UI.scanningWithCount(progress.current)
+              : UI.scanningIdle}
           </p>
           <button style={{ ...styles.btnPrimary, ...styles.btnDisabled }} disabled>
             Сканировать файл

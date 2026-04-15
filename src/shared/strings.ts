@@ -72,6 +72,8 @@ export const UI = {
   rescanSources:    'Пересканировать источники',
 
   progressLabel:    (done: number, total: number) => `Проверено ${done} из ${total}`,
+  scanningIdle:     'Сканирование...',
+  scanningWithCount: (n: number) => `Проверено ${n} элементов...`,
 
   dashScoreLabel:   'Оценка макета',
   dashContextBadge: (name: string, count: number) => `Проверено: ${name} · ${count} элементов`,

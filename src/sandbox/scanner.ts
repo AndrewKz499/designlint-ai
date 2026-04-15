@@ -66,6 +66,9 @@ function walkNode(
   if (isIgnoredByPrefix(node.name)) return;
 
   acc.totalNodesScanned += 1;
+  if (acc.totalNodesScanned % 200 === 0) {
+    figma.ui.postMessage({ type: 'scan-progress', data: { current: acc.totalNodesScanned, total: 0 } });
+  }
 
   // --- Обработка заливок (fills) ---
   if ('fills' in node && node.fills !== figma.mixed) {
