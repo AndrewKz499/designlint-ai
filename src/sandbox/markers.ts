@@ -122,8 +122,13 @@ export async function clearMarkers(): Promise<void> {
     // Одиночные маркеры (старый формат, обратная совместимость)
     findByName(pages[i], MARKER_NAME, found);
 
-    for (let j = 0; j < found.length; j++) {
-      found[j].remove();
+    for (var j = 0; j < found.length; j++) {
+      try {
+        found[j].remove();
+      } catch (e) {
+        // Нода могла быть удалена каскадно с родительской группой —
+        // это нормально, продолжаем.
+      }
     }
   }
 }
