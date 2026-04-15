@@ -75,6 +75,7 @@ export const UI = {
   scanningIdle:     'Сканирование...',
   scanningWithCount: (n: number) => `Проверено ${n} элементов...`,
 
+  dashErrorsTitle:  (count: number) => `Выявленные ошибки: ${count}`,
   dashScoreLabel:   'Оценка макета',
   dashContextBadge: (name: string, count: number) => `Проверено: ${name} · ${count} элементов`,
   dashAiFixAll:     '✨ Исправить всё с помощью AI',

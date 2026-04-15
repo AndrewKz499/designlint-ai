@@ -8,6 +8,8 @@ import { ReviewFix } from './components/ReviewFix';
 import { ScopeSelector } from './components/ScopeSelector';
 import { Header } from './components/ui/Header';
 import { Button } from './components/ui/Button';
+import { Tag } from './components/ui/Tag';
+import { colors, typography, spacing } from './tokens';
 
 type Status = 'idle' | 'scanning' | 'done';
 type View = 'mode0' | 'scanner' | 'review';
@@ -133,9 +135,20 @@ export function App() {
 
       {status === 'done' && detection !== null && (
         <>
+          <div style={{
+            fontFamily: typography.heading.fontFamily,
+            fontWeight: typography.heading.fontWeight,
+            fontSize: typography.heading.fontSize,
+            lineHeight: typography.heading.lineHeight,
+            letterSpacing: typography.heading.letterSpacing,
+            color: colors.textDefault,
+            marginBottom: spacing.s200,
+          }}>
+            {UI.dashErrorsTitle(detection.violations.length)}
+          </div>
           {result && (
-            <div style={styles.contextChip}>
-              {UI.dashContextBadge(result.scopeLabel, result.totalNodesScanned)}
+            <div style={{ marginBottom: spacing.s300 }}>
+              <Tag>{UI.dashContextBadge(result.scopeLabel, result.totalNodesScanned)}</Tag>
             </div>
           )}
 
