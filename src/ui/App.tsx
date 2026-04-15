@@ -226,11 +226,27 @@ export function App() {
             <p style={styles.hint}>{UI.dashEmpty}</p>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Button disabled={detection.violations.length === 0} onClick={() => setCurrentView('review')}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.s200 }}>
+            <Button
+              disabled={detection.violations.length === 0}
+              onClick={() => {/* TODO: bulk fix в Фазе 10.C */}}
+              icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.796 4.924L15 7.5l-4.146 3.038L12.472 16 8 12.6 3.528 16l1.618-5.462L1 7.5l5.204-1.576L8 1z" fill="currentColor"/></svg>}
+            >
+              {UI.dashFixAll}
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={detection.violations.length === 0}
+              onClick={() => setCurrentView('review')}
+            >
               {UI.dashReviewOne}
             </Button>
-            <Button variant="secondary" onClick={handleReset}>Сканировать заново</Button>
+            <Button
+              variant="secondary"
+              onClick={handleReset}
+            >
+              {UI.dashRescan}
+            </Button>
           </div>
         </>
       )}

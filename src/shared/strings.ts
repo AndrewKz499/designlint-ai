@@ -79,7 +79,9 @@ export const UI = {
   dashScoreLabel:   'Оценка макета',
   dashContextBadge: (name: string, count: number) => `Проверено: ${name} · ${count} элементов`,
   dashAiFixAll:     '✨ Исправить всё с помощью AI',
-  dashReviewOne:    'Просмотреть по одному',
+  dashFixAll:       'Исправить все',
+  dashReviewOne:    'Исправить по очереди',
+  dashRescan:       'Сканировать заново',
   dashEmpty:        'Всё в порядке. Макет соответствует системе.',
 
   reviewTitle:      'Проверить и исправить',
