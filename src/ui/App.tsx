@@ -11,9 +11,10 @@ import { Button } from './components/ui/Button';
 import { Tag } from './components/ui/Tag';
 import { Checkbox } from './components/ui/Checkbox';
 import { colors, typography, spacing } from './tokens';
+import { Settings } from './components/Settings';
 
 type Status = 'idle' | 'scanning' | 'done';
-type View = 'mode0' | 'scanner' | 'review';
+type View = 'mode0' | 'scanner' | 'review' | 'settings';
 
 // Отправляет сообщение в sandbox
 function sendMessage(msg: PluginMessage): void {
@@ -103,10 +104,19 @@ export function App() {
 
   // -------------------------------------------------------------------------
 
-  if (currentView === 'mode0') {
+  if (currentView === 'settings') {
     return (
       <div style={styles.root}>
         <Header />
+        <Settings onBack={() => setCurrentView('scanner')} />
+      </div>
+    );
+  }
+
+  if (currentView === 'mode0') {
+    return (
+      <div style={styles.root}>
+        <Header onSettingsClick={() => setCurrentView('settings')} />
         <ScanDesignSystem onComplete={handleMode0Complete} scope={scope} onScopeChange={setScope} />
       </div>
     );

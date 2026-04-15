@@ -126,6 +126,14 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     return;
   }
 
+  if (msg.type === 'set-api-key') {
+    figma.clientStorage.setAsync('anthropic-api-key', msg.data.key).then(function() {
+      figma.ui.postMessage({ type: 'set-api-key-done' });
+      figma.notify('API-ключ сохранён');
+    });
+    return;
+  }
+
   // --- Review & Fix: исправление нарушения ---
 
   // Применить стиль к ноде по выбору пользователя

@@ -243,4 +243,8 @@ export type PluginMessage =
   /** UI запрашивает API-ключ из clientStorage */
   | { type: 'get-api-key' }
   /** Sandbox возвращает API-ключ (или null если не задан) */
-  | { type: 'api-key-response'; data: { key: string | null } };
+  | { type: 'api-key-response'; data: { key: string | null } }
+  /** UI сохраняет API-ключ в clientStorage */
+  | { type: 'set-api-key'; data: { key: string } }
+  /** Sandbox подтверждает сохранение ключа */
+  | { type: 'set-api-key-done' };
