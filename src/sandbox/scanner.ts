@@ -179,21 +179,11 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
   }
 
   if (scope === 'page') {
-    // Обход всех страниц документа (с пропуском служебных по префиксу)
-    var pages = figma.root.children;
-    for (var pi = 0; pi < pages.length; pi++) {
-      var page = pages[pi];
-      if (isIgnoredByPrefix(page.name)) continue;
-      pagesScanned++;
-      await (page as PageNode).loadAsync();
-      var pageChildren = (page as PageNode).children;
-      for (var ci = 0; ci < pageChildren.length; ci++) {
-        walkNode(pageChildren[ci] as SceneNode, page.id, page.name, acc);
-      }
-      figma.ui.postMessage({
-        type: 'scan-progress',
-        data: { current: pi + 1, total: pages.length },
-      });
+    // Обход всех нод активной страницы
+    pagesScanned = 1;
+    var pageChildren = figma.currentPage.children;
+    for (var ci = 0; ci < pageChildren.length; ci++) {
+      walkNode(pageChildren[ci] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc);
     }
   } else if (scope === 'selection') {
     // Обход только выделенных нод и их детей
@@ -220,26 +210,13 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
         walkNode(topChildren[fi] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc);
       }
     }
-  } else {
-    // Fallback — обход всех страниц (с пропуском служебных по префиксу)
-    var fbPages = figma.root.children;
-    for (var fpi = 0; fpi < fbPages.length; fpi++) {
-      var fbPage = fbPages[fpi];
-      if (isIgnoredByPrefix(fbPage.name)) continue;
-      pagesScanned++;
-      await (fbPage as PageNode).loadAsync();
-      var fbChildren = (fbPage as PageNode).children;
-      for (var fci = 0; fci < fbChildren.length; fci++) {
-        walkNode(fbChildren[fci] as SceneNode, fbPage.id, fbPage.name, acc);
-      }
-    }
   }
 
   const scanDurationMs = Math.round(Date.now() - startTime);
 
-  var scopeLabel: string;
+  var scopeLabel: string = figma.currentPage.name;
   if (scope === 'page') {
-    scopeLabel = 'Весь документ';
+    scopeLabel = figma.currentPage.name;
   } else if (scope === 'selection') {
     var selNodes = figma.currentPage.selection;
     if (selNodes.length === 0) {
@@ -263,8 +240,6 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
       return n.type === 'FRAME';
     });
     scopeLabel = 'Фреймы страницы (' + frs.length + ')';
-  } else {
-    scopeLabel = figma.currentPage.name;
   }
 
   return {
