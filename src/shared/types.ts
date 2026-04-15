@@ -79,6 +79,8 @@ export interface SnapshotSource {
   /** Отображаемое имя источника, например "Local Paint Styles" */
   name: string;
   type: 'variables' | 'local-styles';
+  /** Категория источника для UI */
+  kind: 'paintStyles' | 'textStyles' | 'variables';
   /** Количество токенов в этом источнике */
   tokenCount: number;
   /** Включён ли источник в сканирование (по умолчанию true) */

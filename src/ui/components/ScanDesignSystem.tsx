@@ -5,15 +5,11 @@ import { ScopeSelector } from './ScopeSelector';
 
 type Step = 'sources' | 'scanning' | 'result';
 
-const SOURCE_NAME_MAP: Record<string, string> = {
-  'Local Paint Styles': SOURCE_LABEL.paintStyles,
-  'Local Text Styles':  SOURCE_LABEL.textStyles,
-};
-
-function displaySourceName(name: string): string {
-  if (SOURCE_NAME_MAP[name] !== undefined) return SOURCE_NAME_MAP[name];
-  if (name.toLowerCase().includes('variable')) return SOURCE_LABEL.variables;
-  return name;
+function displaySourceName(source: SnapshotSource): string {
+  if (source.kind === 'paintStyles') return SOURCE_LABEL.paintStyles;
+  if (source.kind === 'textStyles') return SOURCE_LABEL.textStyles;
+  // Variables — показываем имя коллекции из Figma
+  return source.name;
 }
 
 function sendMessage(msg: PluginMessage): void {
@@ -103,7 +99,7 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
                   onChange={() => handleToggleSource(source.name)}
                   style={styles.checkbox}
                 />
-                <span style={styles.sourceName}>{displaySourceName(source.name)}</span>
+                <span style={styles.sourceName}>{displaySourceName(source)}</span>
                 <span style={styles.sourceCount}>({source.tokenCount})</span>
               </label>
             </li>

@@ -64,6 +64,7 @@ export async function discoverSources(): Promise<SnapshotSource[]> {
     sources.push({
       name: collection.name,
       type: 'variables',
+      kind: 'variables',
       tokenCount: collection.variableIds.length,
       enabled: true,
     });
@@ -75,6 +76,7 @@ export async function discoverSources(): Promise<SnapshotSource[]> {
     sources.push({
       name: 'Local Paint Styles',
       type: 'local-styles',
+      kind: 'paintStyles',
       tokenCount: paintStyles.length,
       enabled: true,
     });
@@ -86,6 +88,7 @@ export async function discoverSources(): Promise<SnapshotSource[]> {
     sources.push({
       name: 'Local Text Styles',
       type: 'local-styles',
+      kind: 'textStyles',
       tokenCount: textStyles.length,
       enabled: true,
     });
@@ -248,14 +251,18 @@ export async function buildSnapshot(enabledSources: string[]): Promise<Reference
     const src = tokens[i].source;
     sourceMap[src] = (sourceMap[src] || 0) + 1;
   }
-  const sources: SnapshotSource[] = Object.keys(sourceMap).map((name) => ({
-    name,
-    type: (name === 'Local Paint Styles' || name === 'Local Text Styles')
-      ? 'local-styles'
-      : 'variables',
-    tokenCount: sourceMap[name],
-    enabled: true,
-  }));
+  var sources: SnapshotSource[] = Object.keys(sourceMap).map(function(name) {
+    var kind: 'paintStyles' | 'textStyles' | 'variables' = 'variables';
+    if (name === 'Local Paint Styles') { kind = 'paintStyles'; }
+    if (name === 'Local Text Styles') { kind = 'textStyles'; }
+    return {
+      name: name,
+      type: (name === 'Local Paint Styles' || name === 'Local Text Styles') ? 'local-styles' as const : 'variables' as const,
+      kind: kind,
+      tokenCount: sourceMap[name],
+      enabled: true as const,
+    };
+  });
 
   // --- Хэш для отслеживания изменений ---
   const hashInput = tokens.map((t) => t.id + ':' + t.value).join('|');
