@@ -94,6 +94,25 @@ export function App() {
     setCurrentView('scanner');
   };
 
+  const handleBulkFix = () => {
+    if (!detection) return;
+    const toFix = detection.violations.filter((v) => {
+      const cat = VIOLATION_CATEGORY[v.type];
+      return selectedCategories.has(cat) && v.suggestedTokenId !== null;
+    });
+    if (toFix.length === 0) return;
+    for (let i = 0; i < toFix.length; i++) {
+      sendMessage({
+        type: 'fix-violation',
+        data: {
+          nodeId: toFix[i].nodeId,
+          tokenId: toFix[i].suggestedTokenId!,
+          violationType: toFix[i].type,
+        },
+      });
+    }
+  };
+
   const handleFixApplied = (nodeId: string) => {
     setDetection((prev) => {
       if (!prev) return prev;
@@ -248,7 +267,7 @@ export function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.s200 }}>
             <Button
               disabled={detection.violations.length === 0}
-              onClick={() => {/* TODO: bulk fix в Фазе 10.C */}}
+              onClick={handleBulkFix}
               icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.796 4.924L15 7.5l-4.146 3.038L12.472 16 8 12.6 3.528 16l1.618-5.462L1 7.5l5.204-1.576L8 1z" fill="currentColor"/></svg>}
             >
               {UI.dashFixAll}
