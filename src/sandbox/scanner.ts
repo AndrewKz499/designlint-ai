@@ -30,9 +30,11 @@ function rgbToHex(r: number, g: number, b: number): string {
  * Извлекает имя стиля по его ID.
  * Возвращает null, если ID пустой или стиль не найден.
  */
-function resolveStyleName(styleId: string | symbol): string | null {
+function resolveStyleName(styleId: string | symbol, styleNames: { [id: string]: string }): string | null {
   if (typeof styleId !== 'string' || styleId === '') return null;
-  return figma.getStyleById(styleId)?.name ?? null;
+  var name = styleNames[styleId];
+  if (typeof name === 'string') return name;
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +56,7 @@ function walkNode(
   pageId: string,
   pageName: string,
   acc: ScanAccumulator,
+  styleNames: { [id: string]: string },
 ): void {
   // Пропускаем скрытые ноды вместе со всеми их потомками
   if (!node.visible) return;
@@ -74,7 +77,7 @@ function walkNode(
       const opacity = fill.opacity !== undefined ? fill.opacity : 1;
       const styleId = 'fillStyleId' in node ? node.fillStyleId : '';
       const boundStyleId = typeof styleId === 'string' && styleId !== '' ? styleId : null;
-      const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId) : null;
+      const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId, styleNames) : null;
 
       acc.colors.push({
         nodeId: node.id,
@@ -110,7 +113,7 @@ function walkNode(
     const textStyleId = node.textStyleId;
     const boundStyleId =
       typeof textStyleId === 'string' && textStyleId !== '' ? textStyleId : null;
-    const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId) : null;
+    const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId, styleNames) : null;
 
     acc.texts.push({
       nodeId: node.id,
@@ -129,7 +132,7 @@ function walkNode(
   // --- Рекурсивный спуск в дочерние ноды ---
   if ('children' in node) {
     for (const child of node.children) {
-      walkNode(child, pageId, pageName, acc);
+      walkNode(child, pageId, pageName, acc, styleNames);
     }
   }
 }
@@ -153,6 +156,17 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
 
   var pagesScanned = 0;
 
+  // Предзагрузка имён стилей — чтобы не вызывать getStyleById внутри walkNode
+  var styleNames: { [id: string]: string } = {};
+  var paintStyles = await figma.getLocalPaintStylesAsync();
+  for (var psi = 0; psi < paintStyles.length; psi++) {
+    styleNames[paintStyles[psi].id] = paintStyles[psi].name;
+  }
+  var textStyles = await figma.getLocalTextStylesAsync();
+  for (var tsi = 0; tsi < textStyles.length; tsi++) {
+    styleNames[textStyles[tsi].id] = textStyles[tsi].name;
+  }
+
   // Для режимов без перебора страниц — проверяем активную страницу на префикс
   if (scope !== 'page' && isIgnoredByPrefix(figma.currentPage.name)) {
     return {
@@ -171,14 +185,14 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
     pagesScanned = 1;
     var pageChildren = figma.currentPage.children;
     for (var ci = 0; ci < pageChildren.length; ci++) {
-      walkNode(pageChildren[ci] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc);
+      walkNode(pageChildren[ci] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc, styleNames);
     }
   } else if (scope === 'selection') {
     // Обход только выделенных нод и их детей
     pagesScanned = 1;
     var sel = figma.currentPage.selection;
     for (var si = 0; si < sel.length; si++) {
-      walkNode(sel[si], figma.currentPage.id, figma.currentPage.name, acc);
+      walkNode(sel[si], figma.currentPage.id, figma.currentPage.name, acc, styleNames);
     }
   } else if (scope === 'section') {
     // Все ноды типа SECTION на активной странице
@@ -186,7 +200,7 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
     var allChildren = figma.currentPage.children;
     for (var ni = 0; ni < allChildren.length; ni++) {
       if (allChildren[ni].type === 'SECTION') {
-        walkNode(allChildren[ni] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc);
+        walkNode(allChildren[ni] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc, styleNames);
       }
     }
   } else if (scope === 'topFrames') {
@@ -195,7 +209,7 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
     var topChildren = figma.currentPage.children;
     for (var fi = 0; fi < topChildren.length; fi++) {
       if (topChildren[fi].type === 'FRAME') {
-        walkNode(topChildren[fi] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc);
+        walkNode(topChildren[fi] as SceneNode, figma.currentPage.id, figma.currentPage.name, acc, styleNames);
       }
     }
   }
