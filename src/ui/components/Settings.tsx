@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { PluginMessage } from '../../shared/types';
 import { Button } from './ui/Button';
 import { colors, typography, spacing, radii } from '../tokens';
+import { callClaude } from '../aiClient';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -15,6 +16,8 @@ export function Settings({ onBack }: Props) {
   const [key, setKey] = useState('');
   const [saved, setSaved] = useState(false);
   const [hasExisting, setHasExisting] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   // При монтировании проверяем, есть ли уже ключ
   useEffect(() => {
@@ -34,6 +37,18 @@ export function Settings({ onBack }: Props) {
     sendMessage({ type: 'get-api-key' });
     return () => window.removeEventListener('message', handler);
   }, []);
+
+  const handleTestKey = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const resp = await callClaude([{ role: 'user', content: 'Ответь одним словом: работает.' }], undefined, 32);
+    setTesting(false);
+    if (resp && resp.content && resp.content.length > 0 && resp.content[0].text) {
+      setTestResult('✓ Ключ работает: ' + resp.content[0].text.slice(0, 50));
+    } else {
+      setTestResult('✗ Ошибка: ключ не работает или нет баланса');
+    }
+  };
 
   const handleSave = () => {
     if (key.trim().length === 0) return;
@@ -85,6 +100,22 @@ export function Settings({ onBack }: Props) {
       <Button onClick={handleSave} disabled={key.trim().length === 0}>
         {saved ? 'Сохранено ✓' : 'Сохранить ключ'}
       </Button>
+      {hasExisting && (
+        <div style={{ marginTop: spacing.s300 }}>
+          <Button variant="secondary" onClick={handleTestKey} disabled={testing}>
+            {testing ? 'Проверяю...' : 'Проверить ключ'}
+          </Button>
+          {testResult && (
+            <div style={{
+              marginTop: spacing.s200,
+              fontSize: 13,
+              color: testResult.indexOf('✓') === 0 ? '#22C55E' : '#EF4444',
+            }}>
+              {testResult}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
