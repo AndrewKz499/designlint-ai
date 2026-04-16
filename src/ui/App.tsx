@@ -101,6 +101,7 @@ export function App() {
       return selectedCategories.has(cat) && v.suggestedTokenId !== null;
     });
     if (toFix.length === 0) return;
+    const fixedNodeIds = new Set<string>();
     for (let i = 0; i < toFix.length; i++) {
       sendMessage({
         type: 'fix-violation',
@@ -110,7 +111,14 @@ export function App() {
           violationType: toFix[i].type,
         },
       });
+      fixedNodeIds.add(toFix[i].nodeId);
     }
+    // Обновляем detection — убираем исправленные
+    setDetection((prev) => {
+      if (!prev) return prev;
+      const remaining = prev.violations.filter((v) => !fixedNodeIds.has(v.nodeId));
+      return { ...prev, violations: remaining };
+    });
   };
 
   const handleFixApplied = (nodeId: string) => {
