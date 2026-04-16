@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Violation, PluginMessage } from '../../shared/types';
 import { UI, VIOLATION_TITLE, VIOLATION_HINT } from '../../shared/strings';
+import { Button } from './ui/Button';
+import { Header } from './ui/Header';
+import { colors, typography, spacing } from '../tokens';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -104,7 +107,10 @@ export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
   if (total === 0) {
     return (
       <div style={styles.root}>
-        <button style={styles.backBtn} onClick={onBack}>{UI.reviewBack}</button>
+        <Header />
+        <div style={{ color: colors.accentBlue, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>
+          {UI.reviewBack}
+        </div>
         <div style={styles.doneMsg}>{UI.reviewDone}</div>
       </div>
     );
@@ -116,8 +122,9 @@ export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
 
   return (
     <div style={styles.root}>
+      <Header />
       {/* Кнопка возврата */}
-      <button style={styles.backBtn} onClick={onBack}>{UI.reviewBack}</button>
+      <div style={{ color: colors.accentBlue, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>{UI.reviewBack}</div>
 
       {/* Заголовок с счётчиком */}
       <div style={styles.header}>
@@ -144,22 +151,25 @@ export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
       )}
 
       {/* Кнопки действий */}
-      <div style={styles.actions}>
-        <button
-          style={current !== null && current.suggestedTokenId !== null
-            ? styles.btnFix
-            : { ...styles.btnFix, ...styles.btnDisabled }}
-          disabled={current === null || current.suggestedTokenId === null}
-          onClick={handleFix}
-        >
-          {UI.reviewFix}
-        </button>
-        <button style={styles.btnSkip} onClick={handleSkip}>
-          {UI.reviewSkip}
-        </button>
-        <button style={styles.btnIgnore} onClick={handleIgnore}>
-          {UI.reviewIgnore}
-        </button>
+      <div style={{ display: 'flex', gap: spacing.s200 }}>
+        <div style={{ flex: 1 }}>
+          <Button
+            disabled={current === null || current.suggestedTokenId === null}
+            onClick={handleFix}
+          >
+            {UI.reviewFix}
+          </Button>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Button variant="secondary" onClick={handleSkip}>
+            {UI.reviewSkip}
+          </Button>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Button variant="secondary" onClick={handleIgnore}>
+            {UI.reviewIgnore}
+          </Button>
+        </div>
       </div>
 
       {/* Навигация ◀ ▶ */}
@@ -196,15 +206,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '12px',
-  },
-  backBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: '#0D99FF',
-    cursor: 'pointer',
-    fontSize: '12px',
-    padding: 0,
-    textAlign: 'left' as const,
   },
   header: {
     display: 'flex',
@@ -262,45 +263,6 @@ const styles = {
     color: '#0D99FF',
     fontSize: '12px',
   },
-  actions: {
-    display: 'flex',
-    gap: '8px',
-  },
-  btnFix: {
-    flex: 1,
-    padding: '8px 0',
-    background: '#0D99FF',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: 'pointer',
-  } as React.CSSProperties,
-  btnDisabled: {
-    background: '#a0cff7',
-    cursor: 'not-allowed',
-  } as React.CSSProperties,
-  btnSkip: {
-    flex: 1,
-    padding: '8px 0',
-    background: '#F3F4F6',
-    color: '#333',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    cursor: 'pointer',
-  } as React.CSSProperties,
-  btnIgnore: {
-    flex: 1,
-    padding: '8px 0',
-    background: 'transparent',
-    color: '#888',
-    border: '1px solid #E5E7EB',
-    borderRadius: '6px',
-    fontSize: '13px',
-    cursor: 'pointer',
-  } as React.CSSProperties,
   nav: {
     display: 'flex',
     justifyContent: 'center',
