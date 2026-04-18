@@ -101,4 +101,13 @@ export const UI = {
   errNoSelection:   'Выделите фрейм или Section, чтобы начать проверку.',
   errNoTokens:      'В файле нет токенов. Подключите библиотеку или загрузите JSON.',
   errNoAiKey:       'AI-ключ не указан. Добавьте его в Настройках.',
+
+  reportTitle:        'Готово',
+  reportFixedLabel:   (fixed: number, total: number) => `Исправлено ${fixed} из ${total}`,
+  reportDurationLabel: (min: number, sec: number) =>
+    min > 0 ? `Время: ${min} мин ${sec} с` : `Время: ${sec} с`,
+  reportScopeLabel:   (label: string) => `Область: ${label}`,
+  reportCheckAgain:   'Проверить ещё',
+  reportClearMarkers: 'Убрать маркеры с холста',
+  reportMarkersCleared: 'Маркеры убраны',
 };

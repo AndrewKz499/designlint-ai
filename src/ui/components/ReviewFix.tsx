@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Violation, PluginMessage } from '../../shared/types';
+import type { Violation, PluginMessage, ReportMetrics } from '../../shared/types';
 import { UI, VIOLATION_TITLE, VIOLATION_HINT, VIOLATION_CATEGORY, CATEGORY_META } from '../../shared/strings';
+import { ReportView } from './ReportView';
 import { Button } from './ui/Button';
 import { Header } from './ui/Header';
 import { IconButton } from './ui/IconButton';
@@ -17,9 +18,12 @@ interface Props {
   onBack: () => void;
   onFixApplied?: (nodeId: string) => void;
   onSettingsClick?: () => void;
+  metrics: ReportMetrics;
+  onCheckAgain: () => void;
+  onClearMarkers: () => void;
 }
 
-export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }: Props) {
+export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, metrics, onCheckAgain, onClearMarkers }: Props) {
   // Снимок исходных violations на монтировании — для стабильного знаменателя счётчика
   const violationsSnapshotRef = useRef<Violation[]>(violations);
   const explanationsRef = useRef<Map<string, string>>(new Map());
@@ -220,10 +224,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
     return (
       <div style={styles.root}>
         <Header onSettingsClick={onSettingsClick} />
-        <div style={{ color: colors.accentBlue, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>
-          {UI.reviewBack}
-        </div>
-        <div style={styles.doneMsg}>{UI.reviewDone}</div>
+        <ReportView metrics={metrics} onCheckAgain={onCheckAgain} onClearMarkers={onClearMarkers} />
       </div>
     );
   }
