@@ -6,7 +6,7 @@ import { Header } from './ui/Header';
 import { IconButton } from './ui/IconButton';
 import { SelectField, SelectOption } from './ui/SelectField';
 import { callGemini } from '../aiClient';
-import { colors, typography, spacing } from '../tokens';
+import { colors, typography, spacing, radii } from '../tokens';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -30,6 +30,10 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
   const [explanation, setExplanation] = useState<string>('');
   const [explaining, setExplaining] = useState<boolean>(false);
   const [explainError, setExplainError] = useState<boolean>(false);
+  const [previewBase64, setPreviewBase64] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState<boolean>(false);
+  const [previewError, setPreviewError] = useState<string>('');
+  const previewCacheRef = useRef<Map<string, string>>(new Map());
 
   // Фильтруем нарушения — убираем игнорированные и исправленные
   const active = violations.filter(
@@ -76,6 +80,22 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
       const cacheKey = current.id + ':' + (current.suggestedTokenId || '');
       const cached = explanationsRef.current.get(cacheKey);
       setExplanation(cached || '');
+
+      // Превью: кэш или запрос
+      const cachedPreview = previewCacheRef.current.get(current.nodeId);
+      if (cachedPreview) {
+        setPreviewBase64(cachedPreview);
+        setPreviewLoading(false);
+        setPreviewError('');
+      } else {
+        setPreviewBase64(null);
+        setPreviewLoading(true);
+        setPreviewError('');
+        sendMessage({
+          type: 'request-preview',
+          data: { nodeId: current.nodeId },
+        });
+      }
     }
   }, [current]);
 
@@ -126,6 +146,27 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
         setExplaining(false);
       });
   }, [selectedTokenId, current]);
+
+  // Слушатель preview-ready от sandbox
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const msg = event.data.pluginMessage;
+      if (!msg || msg.type !== 'preview-ready') return;
+      if (current === null || msg.data.nodeId !== current.nodeId) return;
+
+      if (msg.data.pngBase64) {
+        previewCacheRef.current.set(current.nodeId, msg.data.pngBase64);
+        setPreviewBase64(msg.data.pngBase64);
+        setPreviewError('');
+      } else {
+        setPreviewBase64(null);
+        setPreviewError(msg.data.error || 'Не удалось загрузить превью');
+      }
+      setPreviewLoading(false);
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [current]);
 
   const goNext = useCallback(() => {
     setCurrentIndex((i) => Math.min(i + 1, total - 1));
@@ -227,6 +268,21 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
           <div style={styles.violationType}>{VIOLATION_TITLE[current.type]}</div>
           <div style={styles.message}>{VIOLATION_HINT[current.type]}</div>
           <div style={styles.currentValue}>{current.currentValue}</div>
+          <div style={styles.previewBox}>
+            {previewLoading && (
+              <div style={styles.previewPlaceholder}>Загружаем превью…</div>
+            )}
+            {!previewLoading && previewBase64 && (
+              <img
+                src={'data:image/png;base64,' + previewBase64}
+                alt="Превью ноды"
+                style={styles.previewImg}
+              />
+            )}
+            {!previewLoading && !previewBase64 && previewError && (
+              <div style={styles.previewPlaceholder}>{previewError}</div>
+            )}
+          </div>
           {current.candidates && current.candidates.length > 0 && (
             <SelectField
               label="Рекомендация AI"
@@ -363,5 +419,28 @@ const styles = {
     cursor: 'pointer',
     marginTop: spacing.s200,
     textDecoration: 'underline',
+  },
+  previewBox: {
+    width: '100%',
+    minHeight: 80,
+    maxHeight: 200,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: colors.bgSecondary,
+    borderRadius: radii.r200,
+    overflow: 'hidden',
+    marginTop: spacing.s200,
+  },
+  previewImg: {
+    maxWidth: '100%',
+    maxHeight: 200,
+    objectFit: 'contain' as const,
+    display: 'block',
+  },
+  previewPlaceholder: {
+    fontSize: typography.body.fontSize + 'px',
+    color: colors.textMuted,
+    padding: spacing.s300,
   },
 } satisfies Record<string, React.CSSProperties>;
