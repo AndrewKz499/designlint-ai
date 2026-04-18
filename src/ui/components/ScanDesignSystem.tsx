@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import type { PluginMessage, SnapshotSource, ReferenceSnapshot, ScanScope } from '../../shared/types';
 import { SOURCE_LABEL, UI } from '../../shared/strings';
 import { ScopeSelector } from './ScopeSelector';
+import { Button } from './ui/Button';
+import { Checkbox } from './ui/Checkbox';
 
 type Step = 'sources' | 'scanning' | 'result';
 
@@ -92,30 +94,24 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
         <ul style={styles.sourceList}>
           {sources.map((source) => (
             <li key={source.name} style={styles.sourceItem}>
-              <label style={styles.sourceLabel}>
-                <input
-                  type="checkbox"
+              <div style={styles.sourceRow}>
+                <Checkbox
                   checked={source.enabled}
                   onChange={() => handleToggleSource(source.name)}
-                  style={styles.checkbox}
+                  label={displaySourceName(source)}
                 />
-                <span style={styles.sourceName}>{displaySourceName(source)}</span>
                 <span style={styles.sourceCount}>({source.tokenCount})</span>
-              </label>
+              </div>
             </li>
           ))}
         </ul>
         )}
-        <button
-          style={enabledCount === 0 ? { ...styles.btnPrimary, ...styles.btnDisabled } : styles.btnPrimary}
-          disabled={enabledCount === 0}
-          onClick={handleStartScan}
-        >
+        <Button disabled={enabledCount === 0} onClick={handleStartScan}>
           Сканировать выбранные
-        </button>
-        <button style={styles.btnText} onClick={onComplete}>
+        </Button>
+        <Button variant="secondary" onClick={onComplete}>
           Пропустить
-        </button>
+        </Button>
       </div>
     );
   }
@@ -127,9 +123,9 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
         <p style={styles.subtitle}>
           {scanStage !== '' ? 'Сканирование... ' + scanStage : 'Сканирование...'}
         </p>
-        <button style={{ ...styles.btnPrimary, ...styles.btnDisabled }} disabled>
+        <Button disabled>
           Сканировать выбранные
-        </button>
+        </Button>
       </div>
     );
   }
@@ -165,12 +161,12 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
       <div style={{ marginTop: 12, marginBottom: 12 }}>
         <ScopeSelector value={scope} onChange={onScopeChange} />
       </div>
-      <button style={styles.btnPrimary} onClick={onComplete}>
+      <Button onClick={onComplete}>
         Запустить аудит
-      </button>
-      <button style={styles.btnText} onClick={handleRescan}>
+      </Button>
+      <Button variant="secondary" onClick={handleRescan}>
         Пересканировать
-      </button>
+      </Button>
     </div>
   );
 }
@@ -210,19 +206,10 @@ const styles = {
   sourceItem: {
     display: 'block',
   },
-  sourceLabel: {
+  sourceRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    cursor: 'pointer',
-  },
-  checkbox: {
-    margin: 0,
-    cursor: 'pointer',
-    accentColor: '#0D99FF',
-  },
-  sourceName: {
-    flex: 1,
+    justifyContent: 'space-between',
   },
   sourceCount: {
     color: '#888',
@@ -243,30 +230,4 @@ const styles = {
     color: '#7A5C00',
     fontSize: '12px',
   },
-  btnPrimary: {
-    display: 'block',
-    width: '100%',
-    padding: '10px 0',
-    background: '#0D99FF',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 500,
-    cursor: 'pointer',
-  } as React.CSSProperties,
-  btnDisabled: {
-    background: '#a0cff7',
-    cursor: 'not-allowed',
-  } as React.CSSProperties,
-  btnText: {
-    display: 'block',
-    width: '100%',
-    padding: '6px 0',
-    background: 'transparent',
-    color: '#0D99FF',
-    border: 'none',
-    fontSize: '13px',
-    cursor: 'pointer',
-  } as React.CSSProperties,
 } satisfies Record<string, React.CSSProperties>;
