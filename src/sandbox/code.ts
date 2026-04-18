@@ -10,7 +10,7 @@ import { fixViolation } from './fixer';
 import type { PluginMessage } from '../shared/types';
 
 // Открываем UI-панель плагина
-figma.showUI(__html__, { width: 420, height: 520, themeColors: true });
+figma.showUI(__html__, { width: 420, height: 800, themeColors: true });
 
 // Обработка сообщений от UI
 figma.ui.onmessage = async (msg: PluginMessage) => {

@@ -4,7 +4,8 @@ import { UI, VIOLATION_TITLE, VIOLATION_HINT, VIOLATION_CATEGORY, CATEGORY_META 
 import { Button } from './ui/Button';
 import { Header } from './ui/Header';
 import { IconButton } from './ui/IconButton';
-import { colors, typography, spacing, radii, borders } from '../tokens';
+import { SelectField, SelectOption } from './ui/SelectField';
+import { colors, typography, spacing } from '../tokens';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -23,6 +24,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
   const [currentIndex, setCurrentIndex] = useState(0);
   const [ignoredIds, setIgnoredIds] = useState<Set<string>>(new Set());
   const [fixedIds, setFixedIds] = useState<Set<string>>(new Set());
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
 
   // Фильтруем нарушения — убираем игнорированные и исправленные
   const active = violations.filter(
@@ -62,6 +64,13 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
     }
   }, [current]);
 
+  // Сброс выбора при смене текущего нарушения
+  useEffect(() => {
+    if (current !== null) {
+      setSelectedTokenId(current.suggestedTokenId);
+    }
+  }, [current]);
+
   const goNext = useCallback(() => {
     setCurrentIndex((i) => Math.min(i + 1, total - 1));
   }, [total]);
@@ -71,12 +80,14 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
   }, []);
 
   const handleFix = () => {
-    if (current === null || current.suggestedTokenId === null) return;
+    if (current === null) return;
+    const tokenId = selectedTokenId || current.suggestedTokenId;
+    if (tokenId === null) return;
     sendMessage({
       type: 'fix-violation',
       data: {
         nodeId: current.nodeId,
-        tokenId: current.suggestedTokenId,
+        tokenId: tokenId,
         violationType: current.type,
       },
     });
@@ -160,10 +171,16 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
           <div style={styles.violationType}>{VIOLATION_TITLE[current.type]}</div>
           <div style={styles.message}>{VIOLATION_HINT[current.type]}</div>
           <div style={styles.currentValue}>{current.currentValue}</div>
-          {current.suggestedToken !== null && (
-            <div style={styles.suggestion}>
-              {UI.reviewSuggested}: {current.suggestedToken}
-            </div>
+          {current.candidates && current.candidates.length > 0 && (
+            <SelectField
+              label="Рекомендация AI"
+              value={selectedTokenId || ''}
+              options={current.candidates.map(function(c): SelectOption {
+                var isColor = c.value.indexOf('#') === 0;
+                return { id: c.id, label: c.name, swatch: isColor ? c.value : undefined };
+              })}
+              onChange={setSelectedTokenId}
+            />
           )}
         </div>
       )}
@@ -172,7 +189,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
       <div style={{ display: 'flex', gap: spacing.s200 }}>
         <div style={{ flex: 1 }}>
           <Button
-            disabled={current === null || current.suggestedTokenId === null}
+            disabled={current === null || (selectedTokenId === null && current.suggestedTokenId === null)}
             onClick={handleFix}
           >
             {UI.reviewFix}
@@ -226,12 +243,10 @@ const styles = {
     textAlign: 'center' as const,
   },
   card: {
-    border: `${borders.stroke}px solid ${colors.borderDefault}`,
-    borderRadius: radii.r200,
-    padding: spacing.s300,
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: '6px',
+    gap: spacing.s200,
+    marginBottom: spacing.s300,
   },
   cardTop: {
     display: 'flex',
