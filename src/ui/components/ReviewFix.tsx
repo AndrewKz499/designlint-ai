@@ -21,9 +21,10 @@ interface Props {
   metrics: ReportMetrics;
   onCheckAgain: () => void;
   onClearMarkers: () => void;
+  aiEnabled: boolean;
 }
 
-export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, metrics, onCheckAgain, onClearMarkers }: Props) {
+export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, metrics, onCheckAgain, onClearMarkers, aiEnabled }: Props) {
   // Снимок исходных violations на монтировании — для стабильного знаменателя счётчика
   const violationsSnapshotRef = useRef<Violation[]>(violations);
   const explanationsRef = useRef<Map<string, string>>(new Map());
@@ -106,6 +107,12 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
   // При смене выбранного токена — проверяем кэш, иначе запускаем AI
   useEffect(() => {
     if (current === null || selectedTokenId === null) return;
+    if (!aiEnabled) {
+      setExplanation('');
+      setExplaining(false);
+      setExplainError(false);
+      return;
+    }
     const cacheKey = current.id + ':' + selectedTokenId;
     const cached = explanationsRef.current.get(cacheKey);
 
@@ -295,14 +302,18 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
               onChange={setSelectedTokenId}
             />
           )}
-          {explaining && (
-            <div style={styles.explanation}>Думаю над объяснением...</div>
-          )}
-          {!explaining && explanation && (
-            <div style={styles.explanation}>{explanation}</div>
-          )}
-          {explainError && !explaining && (
-            <div style={styles.retryLink} onClick={() => setSelectedTokenId(s => s)}>Попробовать ещё раз</div>
+          {aiEnabled && (
+            <>
+              {explaining && (
+                <div style={styles.explanation}>Думаю над объяснением...</div>
+              )}
+              {!explaining && explanation && (
+                <div style={styles.explanation}>{explanation}</div>
+              )}
+              {explainError && !explaining && (
+                <div style={styles.retryLink} onClick={() => setSelectedTokenId(s => s)}>Попробовать ещё раз</div>
+              )}
+            </>
           )}
         </div>
       )}

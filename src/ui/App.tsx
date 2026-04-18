@@ -72,6 +72,7 @@ export function App() {
   const [scoreBefore, setScoreBefore] = useState<number | null>(null);
   const [sessionStartMs, setSessionStartMs] = useState<number | null>(null);
   const [fixedCount, setFixedCount] = useState<number>(0);
+  const [aiEnabled, setAiEnabled] = useState<boolean>(true);
 
   useEffect(() => {
     if (detection && detection.violations.length > 0) {
@@ -101,10 +102,13 @@ export function App() {
           setSessionStartMs(Date.now());
           setFixedCount(0);
         }
+      } else if (msg.type === 'ai-enabled-response') {
+        setAiEnabled(msg.data.enabled);
       }
     };
 
     window.addEventListener('message', handler);
+    parent.postMessage({ pluginMessage: { type: 'get-ai-enabled' } }, '*');
     return () => window.removeEventListener('message', handler);
   }, []);
 
@@ -225,6 +229,7 @@ export function App() {
         }}
         onCheckAgain={handleReset}
         onClearMarkers={() => sendMessage({ type: 'clear-markers' })}
+        aiEnabled={aiEnabled}
       />
     );
   }
