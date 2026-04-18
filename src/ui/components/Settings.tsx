@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { PluginMessage } from '../../shared/types';
 import { Button } from './ui/Button';
-import { colors, typography, spacing, radii } from '../tokens';
+import { colors, typography, spacing, radii, borders } from '../tokens';
 import { callGemini, clearCachedKey } from '../aiClient';
+import { UI } from '../../shared/strings';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -18,6 +19,7 @@ export function Settings({ onBack }: Props) {
   const [hasExisting, setHasExisting] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState<boolean>(true);
 
   // При монтировании проверяем, есть ли уже ключ
   useEffect(() => {
@@ -32,9 +34,13 @@ export function Settings({ onBack }: Props) {
         setHasExisting(true);
         setTimeout(() => setSaved(false), 2000);
       }
+      if (msg.type === 'ai-enabled-response') {
+        setAiEnabled(msg.data.enabled);
+      }
     };
     window.addEventListener('message', handler);
     sendMessage({ type: 'get-api-key' });
+    parent.postMessage({ pluginMessage: { type: 'get-ai-enabled' } }, '*');
     return () => window.removeEventListener('message', handler);
   }, []);
 
@@ -49,6 +55,13 @@ export function Settings({ onBack }: Props) {
     } finally {
       setTesting(false);
     }
+  };
+
+  const handleToggleAi = (next: boolean) => {
+    setAiEnabled(next);
+    parent.postMessage({
+      pluginMessage: { type: 'set-ai-enabled', data: { enabled: next } },
+    }, '*');
   };
 
   const handleSave = () => {
@@ -75,6 +88,19 @@ export function Settings({ onBack }: Props) {
         marginBottom: spacing.s400,
       }}>
         Настройки
+      </div>
+
+      <div style={styles.toggleRow}>
+        <label style={styles.toggleLabel}>
+          <input
+            type="checkbox"
+            checked={aiEnabled}
+            onChange={(e) => handleToggleAi(e.target.checked)}
+            style={styles.toggleCheckbox}
+          />
+          <span>{UI.aiToggleLabel}</span>
+        </label>
+        <div style={styles.toggleHint}>{UI.aiToggleHint}</div>
       </div>
 
       <div style={{ marginBottom: spacing.s200, fontSize: 14, color: colors.textBody }}>
@@ -123,8 +149,76 @@ export function Settings({ onBack }: Props) {
           )}
         </div>
       )}
+
+      <div style={styles.aboutBlock}>
+        <div style={styles.aboutTitle}>{UI.aboutTitle}</div>
+        <div style={styles.aboutDescription}>{UI.aboutDescription}</div>
+        <div style={styles.aboutVersion}>{UI.aboutVersion}</div>
+        <a
+          href="https://github.com/veter2/designlint-ai/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={styles.aboutLink}
+        >
+          {UI.aboutFeedback}
+        </a>
+      </div>
     </div>
   );
 }
+
+const styles = {
+  toggleRow: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: spacing.s200,
+    marginBottom: spacing.s400,
+  } as React.CSSProperties,
+  toggleLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.s200,
+    fontSize: typography.body.fontSize + 'px',
+    color: colors.textDefault,
+    cursor: 'pointer',
+  } as React.CSSProperties,
+  toggleCheckbox: {
+    width: 16,
+    height: 16,
+    cursor: 'pointer',
+  } as React.CSSProperties,
+  toggleHint: {
+    fontSize: '12px',
+    color: colors.textMuted,
+    lineHeight: 1.4,
+  } as React.CSSProperties,
+  aboutBlock: {
+    marginTop: spacing.s400 * 2,
+    paddingTop: spacing.s400,
+    borderTop: `${borders.stroke}px solid ${colors.borderDefault}`,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: spacing.s200,
+  } as React.CSSProperties,
+  aboutTitle: {
+    fontWeight: 600,
+    color: colors.textDefault,
+    fontSize: typography.body.fontSize + 'px',
+  } as React.CSSProperties,
+  aboutDescription: {
+    color: colors.textMuted,
+    fontSize: typography.body.fontSize + 'px',
+    lineHeight: 1.4,
+  } as React.CSSProperties,
+  aboutVersion: {
+    color: colors.textMuted,
+    fontSize: '12px',
+  } as React.CSSProperties,
+  aboutLink: {
+    color: colors.accentBlue,
+    fontSize: typography.body.fontSize + 'px',
+    textDecoration: 'none',
+  } as React.CSSProperties,
+};
 
 export default Settings;

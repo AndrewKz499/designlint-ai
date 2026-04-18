@@ -272,5 +272,13 @@ export type PluginMessage =
   | { type: 'set-api-key'; data: { key: string } }
   /** Sandbox подтверждает сохранение ключа */
   | { type: 'set-api-key-done' }
+  /** UI запрашивает флаг включённости AI */
+  | { type: 'get-ai-enabled' }
+  /** Sandbox возвращает флаг (по умолчанию true) */
+  | { type: 'ai-enabled-response'; data: { enabled: boolean } }
+  /** UI сохраняет флаг включённости AI */
+  | { type: 'set-ai-enabled'; data: { enabled: boolean } }
+  /** Sandbox подтверждает сохранение флага */
+  | { type: 'set-ai-enabled-done' }
   /** UI просит sandbox изменить размер окна плагина */
   | { type: 'resize'; data: { width: number; height: number } };

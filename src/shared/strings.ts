@@ -110,4 +110,13 @@ export const UI = {
   reportCheckAgain:   'Проверить ещё',
   reportClearMarkers: 'Убрать маркеры с холста',
   reportMarkersCleared: 'Маркеры убраны',
+
+  // О плагине
+  aboutTitle:       'О плагине',
+  aboutDescription: 'Аудит дизайн-систем в Figma на языке дизайнера',
+  aboutVersion:     'Версия 0.12.1',
+  aboutFeedback:    'Обратная связь',
+
+  aiToggleLabel: 'Использовать AI для объяснений',
+  aiToggleHint:  'Когда выключено — плагин работает только на правилах без запросов к Gemini',
 };

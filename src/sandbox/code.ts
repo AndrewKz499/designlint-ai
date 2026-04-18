@@ -135,6 +135,24 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     return;
   }
 
+  if (msg.type === 'get-ai-enabled') {
+    figma.clientStorage.getAsync('ai-enabled')
+      .then(function(val) {
+        // По умолчанию AI включён (val === undefined → true)
+        var enabled = val === false ? false : true;
+        figma.ui.postMessage({ type: 'ai-enabled-response', data: { enabled: enabled } });
+      });
+    return;
+  }
+
+  if (msg.type === 'set-ai-enabled') {
+    figma.clientStorage.setAsync('ai-enabled', msg.data.enabled)
+      .then(function() {
+        figma.ui.postMessage({ type: 'set-ai-enabled-done' });
+      });
+    return;
+  }
+
   // --- Resize окна плагина ---
 
   if (msg.type === 'resize') {
