@@ -12,6 +12,7 @@ import { Tag } from './components/ui/Tag';
 import { Checkbox } from './components/ui/Checkbox';
 import { colors, typography, spacing } from './tokens';
 import { Settings } from './components/Settings';
+import { Spinner } from './components/ui/Spinner';
 
 type Status = 'idle' | 'scanning' | 'done';
 type View = 'mode0' | 'scanner' | 'review' | 'settings';
@@ -219,11 +220,14 @@ export function App() {
 
       {status === 'scanning' && (
         <>
-          <p style={styles.hint}>
-            {progress && progress.current > 0
-              ? UI.scanningWithCount(progress.current)
-              : UI.scanningIdle}
-          </p>
+          <div style={styles.scanningRow}>
+            <Spinner size={16} />
+            <p style={styles.hint}>
+              {progress && progress.current > 0
+                ? UI.scanningWithCount(progress.current)
+                : UI.scanningIdle}
+            </p>
+          </div>
           <Button disabled>Сканировать файл</Button>
         </>
       )}
@@ -362,5 +366,11 @@ const styles = {
   hint: {
     margin: `0 0 ${spacing.s400}px`,
     color: colors.textMuted,
+  },
+  scanningRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.s200,
+    marginTop: spacing.s300,
   },
 } satisfies Record<string, React.CSSProperties>;
