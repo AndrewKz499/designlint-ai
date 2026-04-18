@@ -69,6 +69,9 @@ export function App() {
   const [detection, setDetection] = useState<DetectionResult | null>(null);
   const [scope, setScope] = useState<ScanScope>('selection');
   const [selectedCategories, setSelectedCategories] = useState<Set<Category>>(new Set());
+  const [scoreBefore, setScoreBefore] = useState<number | null>(null);
+  const [sessionStartMs, setSessionStartMs] = useState<number | null>(null);
+  const [fixedCount, setFixedCount] = useState<number>(0);
 
   useEffect(() => {
     if (detection && detection.violations.length > 0) {
@@ -92,6 +95,12 @@ export function App() {
         setStatus('done');
       } else if (msg.type === 'detection-complete') {
         setDetection(msg.data);
+        // Запоминаем исходные метрики только при ПЕРВОМ детекшене в сессии
+        if (scoreBefore === null) {
+          setScoreBefore(msg.data.healthScore);
+          setSessionStartMs(Date.now());
+          setFixedCount(0);
+        }
       }
     };
 
@@ -122,6 +131,9 @@ export function App() {
     setResult(null);
     setDetection(null);
     setProgress(null);
+    setScoreBefore(null);
+    setSessionStartMs(null);
+    setFixedCount(0);
   };
 
   // Возврат к Mode 0 (настройка дизайн-системы)
@@ -162,6 +174,7 @@ export function App() {
   };
 
   const handleFixApplied = (nodeId: string) => {
+    setFixedCount(c => c + 1);
     setDetection((prev) => {
       if (!prev) return prev;
       const updated = prev.violations.filter((v) => v.nodeId !== nodeId);
@@ -199,6 +212,19 @@ export function App() {
         onBack={handleBackToDashboard}
         onFixApplied={handleFixApplied}
         onSettingsClick={() => setCurrentView('settings')}
+        metrics={{
+          scoreBefore: scoreBefore ?? (detection?.healthScore ?? 0),
+          scoreAfter: detection?.healthScore ?? 0,
+          fixedCount,
+          totalBefore: scoreBefore !== null && detection
+            ? detection.violations.length + fixedCount
+            : (detection?.violations.length ?? 0),
+          totalAfter: detection?.violations.length ?? 0,
+          durationMs: sessionStartMs ? Date.now() - sessionStartMs : 0,
+          scopeLabel: result?.scopeLabel ?? '',
+        }}
+        onCheckAgain={handleReset}
+        onClearMarkers={() => sendMessage({ type: 'clear-markers' })}
       />
     );
   }
