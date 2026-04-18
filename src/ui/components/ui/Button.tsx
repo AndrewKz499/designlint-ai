@@ -38,7 +38,8 @@ const variantStyles: Record<'primary' | 'secondary', React.CSSProperties> = {
 };
 
 const disabledStyles: React.CSSProperties = {
-  opacity: 0.5,
+  background: colors.bgSecondary,
+  color: colors.textMuted,
   cursor: 'not-allowed',
 };
 
@@ -51,8 +52,7 @@ export function Button({
 }: ButtonProps): React.ReactElement {
   const style: React.CSSProperties = {
     ...base,
-    ...variantStyles[variant],
-    ...(disabled ? disabledStyles : {}),
+    ...(disabled ? disabledStyles : variantStyles[variant]),
   };
 
   return (
