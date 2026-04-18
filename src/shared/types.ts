@@ -237,6 +237,10 @@ export type PluginMessage =
   | { type: 'fix-violation'; data: { nodeId: string; tokenId: string; violationType: ViolationType } }
   /** Sandbox отвечает: исправление выполнено или не удалось */
   | { type: 'fix-complete'; data: { nodeId: string; success: boolean } }
+  /** UI просит sandbox экспортировать PNG-превью ноды */
+  | { type: 'request-preview'; data: { nodeId: string } }
+  /** Sandbox возвращает PNG как base64 (без префикса data:image/png;base64,); null если экспорт не удался */
+  | { type: 'preview-ready'; data: { nodeId: string; pngBase64: string | null; error?: string } }
   /** UI сообщает: пользователь нажал Ignore — скрыть нарушение до следующего скана */
   | { type: 'ignore-violation'; data: { violationId: string } }
 
