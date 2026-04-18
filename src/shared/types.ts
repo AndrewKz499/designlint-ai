@@ -247,4 +247,6 @@ export type PluginMessage =
   /** UI сохраняет API-ключ в clientStorage */
   | { type: 'set-api-key'; data: { key: string } }
   /** Sandbox подтверждает сохранение ключа */
-  | { type: 'set-api-key-done' };
+  | { type: 'set-api-key-done' }
+  /** UI просит sandbox изменить размер окна плагина */
+  | { type: 'resize'; data: { width: number; height: number } };
