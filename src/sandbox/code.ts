@@ -151,7 +151,11 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   // Применить стиль к ноде по выбору пользователя
   if (msg.type === 'fix-violation') {
     try {
-      const success = await fixViolation(msg.data.nodeId, msg.data.tokenId, msg.data.violationType);
+      // Закрываем предыдущую undo-группу ДО мутации,
+      // чтобы Fix попал в свежую изолированную группу,
+      // которую Cmd+Z сможет откатить одним нажатием
+      figma.commitUndo();
+      var success = await fixViolation(msg.data.nodeId, msg.data.tokenId, msg.data.violationType);
       figma.ui.postMessage({ type: 'fix-complete', data: { nodeId: msg.data.nodeId, success } });
     } catch (err) {
       figma.notify('Ошибка: ' + String(err));
