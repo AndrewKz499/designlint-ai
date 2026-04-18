@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { PluginMessage } from '../../shared/types';
 import { Button } from './ui/Button';
 import { colors, typography, spacing, radii } from '../tokens';
-import { callClaude } from '../aiClient';
+import { callGemini, clearCachedKey } from '../aiClient';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -41,17 +41,19 @@ export function Settings({ onBack }: Props) {
   const handleTestKey = async () => {
     setTesting(true);
     setTestResult(null);
-    const resp = await callClaude([{ role: 'user', content: 'Ответь одним словом: работает.' }], undefined, 32);
-    setTesting(false);
-    if (resp && resp.content && resp.content.length > 0 && resp.content[0].text) {
-      setTestResult('✓ Ключ работает: ' + resp.content[0].text.slice(0, 50));
-    } else {
-      setTestResult('✗ Ошибка: ключ не работает или нет баланса');
+    try {
+      const text = await callGemini([{ role: 'user', content: 'Ответь одним словом: работает.' }], undefined, 32);
+      setTestResult('✓ Ключ работает: ' + text.slice(0, 50));
+    } catch (e) {
+      setTestResult('✗ Ошибка: ' + String(e).slice(0, 80));
+    } finally {
+      setTesting(false);
     }
   };
 
   const handleSave = () => {
     if (key.trim().length === 0) return;
+    clearCachedKey();
     sendMessage({ type: 'set-api-key', data: { key: key.trim() } });
     setKey('');
   };
@@ -76,14 +78,19 @@ export function Settings({ onBack }: Props) {
       </div>
 
       <div style={{ marginBottom: spacing.s200, fontSize: 14, color: colors.textBody }}>
-        Anthropic API Key
+        Google API Key
       </div>
       <div style={{ marginBottom: spacing.s200, fontSize: 13, color: colors.textMuted }}>
         {hasExisting ? 'Ключ сохранён. Введите новый для замены.' : 'Введите ключ для AI-функций (Исправить все).'}
       </div>
+      <div style={{ marginBottom: spacing.s200, fontSize: 12, color: colors.accentBlue }}>
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: colors.accentBlue }}>
+          Получить ключ на aistudio.google.com
+        </a>
+      </div>
       <input
         type="password"
-        placeholder="sk-ant-..."
+        placeholder="AIza..."
         value={key}
         onChange={(e) => setKey(e.target.value)}
         style={{

@@ -10,7 +10,7 @@ import { fixViolation } from './fixer';
 import type { PluginMessage } from '../shared/types';
 
 // Открываем UI-панель плагина
-figma.showUI(__html__, { width: 420, height: 520 });
+figma.showUI(__html__, { width: 420, height: 520, themeColors: true });
 
 // Обработка сообщений от UI
 figma.ui.onmessage = async (msg: PluginMessage) => {
@@ -120,17 +120,29 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   // --- API-ключ ---
 
   if (msg.type === 'get-api-key') {
-    figma.clientStorage.getAsync('anthropic-api-key').then(function(val) {
+    figma.clientStorage.getAsync('google-api-key').then(function(val) {
       figma.ui.postMessage({ type: 'api-key-response', data: { key: val || null } });
     });
     return;
   }
 
   if (msg.type === 'set-api-key') {
-    figma.clientStorage.setAsync('anthropic-api-key', msg.data.key).then(function() {
+    figma.clientStorage.setAsync('google-api-key', msg.data.key).then(function() {
+      figma.clientStorage.deleteAsync('anthropic-api-key');
       figma.ui.postMessage({ type: 'set-api-key-done' });
       figma.notify('API-ключ сохранён');
     });
+    return;
+  }
+
+  // --- Resize окна плагина ---
+
+  if (msg.type === 'resize') {
+    var w = msg.data.width;
+    var h = msg.data.height;
+    if (w < 320) w = 320;
+    if (h < 400) h = 400;
+    figma.ui.resize(w, h);
     return;
   }
 
