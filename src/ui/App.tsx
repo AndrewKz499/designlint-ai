@@ -16,6 +16,45 @@ import { Settings } from './components/Settings';
 type Status = 'idle' | 'scanning' | 'done';
 type View = 'mode0' | 'scanner' | 'review' | 'settings';
 
+function ResizeHandle() {
+  function onPointerDown(e: React.PointerEvent) {
+    e.preventDefault();
+    var startX = e.clientX;
+    var startY = e.clientY;
+    var startW = window.innerWidth;
+    var startH = window.innerHeight;
+
+    function onMove(ev: PointerEvent) {
+      var w = startW + (ev.clientX - startX);
+      var h = startH + (ev.clientY - startY);
+      parent.postMessage({ pluginMessage: { type: 'resize', data: { width: w, height: h } } }, '*');
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  var style: React.CSSProperties = {
+    position: 'fixed',
+    right: 0,
+    bottom: 0,
+    width: 16,
+    height: 16,
+    cursor: 'nwse-resize',
+    zIndex: 1000,
+  };
+  return (
+    <div style={style} onPointerDown={onPointerDown}>
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <path d="M14 14L14 10 M14 14L10 14 M14 14L14 6 M14 14L6 14" stroke="#999" strokeWidth="1" strokeLinecap="round"/>
+      </svg>
+    </div>
+  );
+}
+
 // Отправляет сообщение в sandbox
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -136,6 +175,7 @@ export function App() {
       <div style={styles.root}>
         <Header />
         <Settings onBack={() => setCurrentView('scanner')} />
+        <ResizeHandle />
       </div>
     );
   }
@@ -145,6 +185,7 @@ export function App() {
       <div style={styles.root}>
         <Header onSettingsClick={() => setCurrentView('settings')} />
         <ScanDesignSystem onComplete={handleMode0Complete} scope={scope} onScopeChange={setScope} />
+        <ResizeHandle />
       </div>
     );
   }
@@ -156,6 +197,7 @@ export function App() {
         violations={detection !== null ? detection.violations : []}
         onBack={handleBackToDashboard}
         onFixApplied={handleFixApplied}
+        onSettingsClick={() => setCurrentView('settings')}
       />
     );
   }
@@ -301,6 +343,7 @@ export function App() {
       {status === 'done' && detection === null && result !== null && (
         <p style={styles.hint}>Анализ результатов...</p>
       )}
+      <ResizeHandle />
     </div>
   );
 }

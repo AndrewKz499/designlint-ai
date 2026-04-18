@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Violation, PluginMessage } from '../../shared/types';
-import { UI, VIOLATION_TITLE, VIOLATION_HINT } from '../../shared/strings';
+import { UI, VIOLATION_TITLE, VIOLATION_HINT, VIOLATION_CATEGORY, CATEGORY_META } from '../../shared/strings';
 import { Button } from './ui/Button';
 import { Header } from './ui/Header';
-import { colors, typography, spacing } from '../tokens';
+import { IconButton } from './ui/IconButton';
+import { colors, typography, spacing, radii, borders } from '../tokens';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -13,9 +14,12 @@ interface Props {
   violations: Violation[];
   onBack: () => void;
   onFixApplied?: (nodeId: string) => void;
+  onSettingsClick?: () => void;
 }
 
-export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
+export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }: Props) {
+  // Снимок исходных violations на монтировании — для стабильного знаменателя счётчика
+  const violationsSnapshotRef = useRef<Violation[]>(violations);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [ignoredIds, setIgnoredIds] = useState<Set<string>>(new Set());
   const [fixedIds, setFixedIds] = useState<Set<string>>(new Set());
@@ -107,7 +111,7 @@ export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
   if (total === 0) {
     return (
       <div style={styles.root}>
-        <Header />
+        <Header onSettingsClick={onSettingsClick} />
         <div style={{ color: colors.accentBlue, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>
           {UI.reviewBack}
         </div>
@@ -120,16 +124,30 @@ export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
   // Рендер: карточка нарушения
   // -------------------------------------------------------------------------
 
+  const currentCategory = current ? VIOLATION_CATEGORY[current.type] : 'color';
+  // categoryAll — все нарушения этой категории из ИСХОДНОГО входа (стабильный знаменатель)
+  const categoryAll = violationsSnapshotRef.current.filter(function(v){ return VIOLATION_CATEGORY[v.type] === currentCategory; });
+  const categoryTotal = categoryAll.length;
+  const categoryIndex = current ? categoryAll.indexOf(current) : 0;
+  const categoryLabel = CATEGORY_META[currentCategory as keyof typeof CATEGORY_META]
+    ? CATEGORY_META[currentCategory as keyof typeof CATEGORY_META].label : '';
+
   return (
     <div style={styles.root}>
-      <Header />
+      <Header onSettingsClick={onSettingsClick} />
       {/* Кнопка возврата */}
       <div style={{ color: colors.accentBlue, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>{UI.reviewBack}</div>
 
-      {/* Заголовок с счётчиком */}
-      <div style={styles.header}>
-        <span style={styles.title}>{UI.reviewTitle}</span>
-        <span style={styles.counter}>{safeIndex + 1} из {total}</span>
+      {/* Навигация по категории */}
+      <div style={styles.categoryNav}>
+        <span style={styles.categoryLabel}>{categoryLabel}:</span>
+        <IconButton disabled={categoryIndex <= 0} onClick={goPrev}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </IconButton>
+        <span style={styles.categoryCounter}>{categoryIndex + 1} / {categoryTotal}</span>
+        <IconButton disabled={categoryIndex >= categoryTotal - 1} onClick={goNext}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </IconButton>
       </div>
 
       {/* Карточка нарушения */}
@@ -171,24 +189,6 @@ export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
           </Button>
         </div>
       </div>
-
-      {/* Навигация ◀ ▶ */}
-      <div style={styles.nav}>
-        <button
-          style={safeIndex === 0 ? { ...styles.navBtn, ...styles.navBtnDisabled } : styles.navBtn}
-          disabled={safeIndex === 0}
-          onClick={goPrev}
-        >
-          ◀
-        </button>
-        <button
-          style={safeIndex === total - 1 ? { ...styles.navBtn, ...styles.navBtnDisabled } : styles.navBtn}
-          disabled={safeIndex === total - 1}
-          onClick={goNext}
-        >
-          ▶
-        </button>
-      </div>
     </div>
   );
 }
@@ -200,30 +200,35 @@ export function ReviewFix({ violations, onBack, onFixApplied }: Props) {
 const styles = {
   root: {
     padding: '16px',
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: typography.body.fontFamily,
     fontSize: '13px',
-    color: '#1a1a1a',
+    color: colors.textDefault,
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: '12px',
+    gap: spacing.s300,
   },
-  header: {
+  categoryNav: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.s200,
+    marginBottom: spacing.s300,
   },
-  title: {
-    fontSize: '14px',
-    fontWeight: 600,
+  categoryLabel: {
+    fontSize: typography.body.fontSize + 'px',
+    fontWeight: typography.heading.fontWeight,
+    color: colors.textDefault,
+    marginRight: spacing.s200,
   },
-  counter: {
-    fontSize: '12px',
-    color: '#888',
+  categoryCounter: {
+    fontSize: typography.body.fontSize + 'px',
+    color: colors.textMuted,
+    minWidth: '32px',
+    textAlign: 'center' as const,
   },
   card: {
-    border: '1px solid #E5E7EB',
-    borderRadius: '8px',
-    padding: '12px',
+    border: `${borders.stroke}px solid ${colors.borderDefault}`,
+    borderRadius: radii.r200,
+    padding: spacing.s300,
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '6px',
@@ -246,16 +251,16 @@ const styles = {
     whiteSpace: 'nowrap' as const,
   },
   violationType: {
-    fontWeight: 600,
-    fontSize: '13px',
+    fontWeight: typography.heading.fontWeight,
+    fontSize: typography.heading.fontSize,
   },
   message: {
-    color: '#555',
+    color: colors.textBody,
     lineHeight: 1.4,
     fontSize: '12px',
   },
   currentValue: {
-    color: '#888',
+    color: colors.textMuted,
     fontSize: '12px',
     fontFamily: 'monospace',
   },
@@ -263,24 +268,6 @@ const styles = {
     color: '#0D99FF',
     fontSize: '12px',
   },
-  nav: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '12px',
-  },
-  navBtn: {
-    background: '#F3F4F6',
-    border: 'none',
-    borderRadius: '6px',
-    width: '36px',
-    height: '32px',
-    fontSize: '14px',
-    cursor: 'pointer',
-  } as React.CSSProperties,
-  navBtnDisabled: {
-    color: '#ccc',
-    cursor: 'not-allowed',
-  } as React.CSSProperties,
   doneMsg: {
     textAlign: 'center' as const,
     color: '#22C55E',
