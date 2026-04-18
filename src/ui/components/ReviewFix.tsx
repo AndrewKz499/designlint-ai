@@ -344,10 +344,6 @@ const styles = {
     fontSize: '12px',
     fontFamily: 'monospace',
   },
-  suggestion: {
-    color: '#0D99FF',
-    fontSize: '12px',
-  },
   explanation: {
     fontSize: typography.body.fontSize + 'px',
     color: colors.textMuted,

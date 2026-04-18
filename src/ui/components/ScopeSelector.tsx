@@ -1,6 +1,7 @@
 // Сегмент-контрол выбора области сканирования
 import type { ScanScope } from '../../shared/types';
 import { SCOPE_LABEL, UI } from '../../shared/strings';
+import { colors, typography, spacing, radii, borders } from '../tokens';
 
 type Props = {
   value: ScanScope;
@@ -38,34 +39,34 @@ export function ScopeSelector({ value, onChange }: Props) {
 
 const styles = {
   label: {
-    fontSize: '11px',
-    color: '#888',
-    marginBottom: '4px',
+    fontSize: typography.body.fontSize + 'px',
+    color: colors.textMuted,
+    marginBottom: spacing.s200,
   } as React.CSSProperties,
   group: {
     display: 'flex',
     width: '100%',
-    borderRadius: '6px',
+    borderRadius: radii.r200,
     overflow: 'hidden',
-    border: '1px solid #E5E7EB',
+    border: `${borders.stroke}px solid ${colors.borderDefault}`,
   } as React.CSSProperties,
   btnIdle: {
     flex: 1,
-    padding: '6px 8px',
+    padding: `${spacing.s200}px`,
     background: 'transparent',
-    color: '#555',
+    color: colors.textMuted,
     border: 'none',
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: typography.body.fontFamily,
     fontSize: '12px',
     cursor: 'pointer',
   } as React.CSSProperties,
   btnActive: {
     flex: 1,
-    padding: '6px 8px',
-    background: '#0D99FF',
-    color: '#fff',
+    padding: `${spacing.s200}px`,
+    background: colors.bgBrandDefault,
+    color: colors.textBrandOnBrand,
     border: 'none',
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: typography.body.fontFamily,
     fontSize: '12px',
     cursor: 'pointer',
     fontWeight: 500,

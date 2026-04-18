@@ -354,13 +354,13 @@ export function App() {
 
 const styles = {
   root: {
-    padding: '20px',
-    fontFamily: 'Inter, sans-serif',
+    padding: spacing.s400,
+    fontFamily: typography.body.fontFamily,
     fontSize: '13px',
-    color: '#1a1a1a',
+    color: colors.textDefault,
   },
   hint: {
-    margin: '0 0 16px',
-    color: '#555',
+    margin: `0 0 ${spacing.s400}px`,
+    color: colors.textMuted,
   },
 } satisfies Record<string, React.CSSProperties>;
