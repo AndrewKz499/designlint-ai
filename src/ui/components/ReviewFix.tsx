@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { Header } from './ui/Header';
 import { IconButton } from './ui/IconButton';
 import { SelectField, SelectOption } from './ui/SelectField';
+import { callGemini } from '../aiClient';
 import { colors, typography, spacing } from '../tokens';
 
 function sendMessage(msg: PluginMessage): void {
@@ -21,10 +22,14 @@ interface Props {
 export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }: Props) {
   // Снимок исходных violations на монтировании — для стабильного знаменателя счётчика
   const violationsSnapshotRef = useRef<Violation[]>(violations);
+  const explanationsRef = useRef<Map<string, string>>(new Map());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [ignoredIds, setIgnoredIds] = useState<Set<string>>(new Set());
   const [fixedIds, setFixedIds] = useState<Set<string>>(new Set());
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<string>('');
+  const [explaining, setExplaining] = useState<boolean>(false);
+  const [explainError, setExplainError] = useState<boolean>(false);
 
   // Фильтруем нарушения — убираем игнорированные и исправленные
   const active = violations.filter(
@@ -64,12 +69,63 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
     }
   }, [current]);
 
-  // Сброс выбора при смене текущего нарушения
+  // Сброс выбора при смене текущего нарушения + подтягивание объяснения из кэша
   useEffect(() => {
     if (current !== null) {
       setSelectedTokenId(current.suggestedTokenId);
+      const cacheKey = current.id + ':' + (current.suggestedTokenId || '');
+      const cached = explanationsRef.current.get(cacheKey);
+      setExplanation(cached || '');
     }
   }, [current]);
+
+  // При смене выбранного токена — проверяем кэш, иначе запускаем AI
+  useEffect(() => {
+    if (current === null || selectedTokenId === null) return;
+    const cacheKey = current.id + ':' + selectedTokenId;
+    const cached = explanationsRef.current.get(cacheKey);
+
+    if (cached) {
+      setExplanation(cached);
+      return;
+    }
+
+    // Кэша нет — запускаем AI
+    const tokenInfo = current.candidates?.find(c => c.id === selectedTokenId);
+    if (!tokenInfo) return;
+
+    setExplainError(false);
+    setExplaining(true);
+    setExplanation('');
+
+    const prompt = 'Нарушение: ' + current.currentValue + ' на ноде "' + current.nodeName +
+      '". Предложенный токен: "' + tokenInfo.name + '" со значением ' + tokenInfo.value +
+      '. Объясни в 1-2 коротких предложениях, почему этот токен подходит. ' +
+      'Без вступлений, сразу по сути. На русском.';
+
+    callGemini(
+      [{ role: 'user', content: prompt }],
+      'Ты помощник дизайнера, объясняешь выбор токенов из дизайн-системы. Отвечай кратко, по делу, на русском.',
+      200
+    )
+      .then(text => {
+        explanationsRef.current.set(cacheKey, text);
+        setExplanation(text);
+        setExplainError(false);
+      })
+      .catch(err => {
+        const msg = String(err);
+        let friendly = 'Не удалось получить объяснение.';
+        if (msg.includes('401') || msg.includes('403')) friendly = 'Неверный API-ключ. Проверьте настройки.';
+        else if (msg.includes('429')) friendly = 'Превышен лимит запросов. Попробуйте позже.';
+        else if (msg.includes('503') || msg.includes('overloaded')) friendly = 'Сервис временно недоступен.';
+        setExplanation(friendly);
+        setExplainError(true);
+      })
+      .finally(() => {
+        setExplaining(false);
+      });
+  }, [selectedTokenId, current]);
 
   const goNext = useCallback(() => {
     setCurrentIndex((i) => Math.min(i + 1, total - 1));
@@ -182,6 +238,15 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick }:
               onChange={setSelectedTokenId}
             />
           )}
+          {explaining && (
+            <div style={styles.explanation}>Думаю над объяснением...</div>
+          )}
+          {!explaining && explanation && (
+            <div style={styles.explanation}>{explanation}</div>
+          )}
+          {explainError && !explaining && (
+            <div style={styles.retryLink} onClick={() => setSelectedTokenId(s => s)}>Попробовать ещё раз</div>
+          )}
         </div>
       )}
 
@@ -283,11 +348,24 @@ const styles = {
     color: '#0D99FF',
     fontSize: '12px',
   },
+  explanation: {
+    fontSize: typography.body.fontSize + 'px',
+    color: colors.textMuted,
+    marginTop: spacing.s200,
+    lineHeight: 1.4,
+  },
   doneMsg: {
     textAlign: 'center' as const,
     color: '#22C55E',
     fontWeight: 600,
     fontSize: '14px',
     padding: '32px 0',
+  },
+  retryLink: {
+    fontSize: typography.body.fontSize + 'px',
+    color: colors.accentBlue,
+    cursor: 'pointer',
+    marginTop: spacing.s200,
+    textDecoration: 'underline',
   },
 } satisfies Record<string, React.CSSProperties>;
