@@ -174,23 +174,27 @@ export function runDetection(
           suggestedTokenId: similarMatch.id,
         };
       }
-      // Если точного и похожего совпадения нет — ищем ближайший токен по минимальной дистанции
+      // Если точного и похожего совпадения нет — собираем топ-3 по манхэттенской дистанции
       if (similarMatch === null && colorTokens.length > 0) {
-        var bestMatch = null;
-        var bestDist = Infinity;
+        var scored = [];
         for (var k = 0; k < colorTokens.length; k++) {
           var tokenRgb2 = hexToRgb(colorTokens[k].value);
-          var dist = Math.abs(rgb.r - tokenRgb2.r) + Math.abs(rgb.g - tokenRgb2.g) + Math.abs(rgb.b - tokenRgb2.b);
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestMatch = colorTokens[k];
-          }
+          var dist = Math.abs(rgb.r - tokenRgb2.r)
+                   + Math.abs(rgb.g - tokenRgb2.g)
+                   + Math.abs(rgb.b - tokenRgb2.b);
+          scored.push({ token: colorTokens[k], dist: dist });
         }
-        if (bestMatch !== null) {
-          // Обновляем существующий hardcoded_color — добавляем рекомендацию ближайшего токена
-          violations[existingIndex].suggestedToken = bestMatch.name;
-          violations[existingIndex].suggestedTokenId = bestMatch.id;
-          violations[existingIndex].message = 'Цвет ' + color.hex + ' задан напрямую. Ближайший токен: ' + bestMatch.name;
+        scored.sort(function(a, b){ return a.dist - b.dist; });
+        var top = scored.slice(0, 3);
+
+        if (top.length > 0) {
+          var best = top[0].token;
+          violations[existingIndex].suggestedToken = best.name;
+          violations[existingIndex].suggestedTokenId = best.id;
+          violations[existingIndex].message = 'Цвет ' + color.hex + ' задан напрямую. Ближайший токен: ' + best.name;
+          violations[existingIndex].candidates = top.map(function(s){
+            return { id: s.token.id, name: s.token.name, value: s.token.value };
+          });
         }
       }
     }
@@ -243,26 +247,28 @@ export function runDetection(
   if (textTokens.length > 0) {
     for (var ti = 0; ti < violations.length; ti++) {
       if (violations[ti].type === 'missing_text_style' && violations[ti].suggestedTokenId === null) {
-        // Ищем ближайший текстовый стиль по fontSize
+        // Собираем топ-3 ближайших текстовых стилей по fontSize
         var violFontSize = parseFloat(violations[ti].currentValue);
         if (isNaN(violFontSize)) continue;
 
-        var bestText = null;
-        var bestTextDist = Infinity;
+        var scoredText = [];
         for (var tt = 0; tt < textTokens.length; tt++) {
           var tokenFontSize = parseFloat(textTokens[tt].value);
           if (isNaN(tokenFontSize)) continue;
           var d = Math.abs(violFontSize - tokenFontSize);
-          if (d < bestTextDist) {
-            bestTextDist = d;
-            bestText = textTokens[tt];
-          }
+          scoredText.push({ token: textTokens[tt], dist: d });
         }
+        scoredText.sort(function(a, b){ return a.dist - b.dist; });
+        var topText = scoredText.slice(0, 3);
 
-        if (bestText !== null) {
-          violations[ti].suggestedToken = bestText.name;
-          violations[ti].suggestedTokenId = bestText.id;
-          violations[ti].message = 'Текст ' + violFontSize + 'px без стиля. Ближайший: ' + bestText.name;
+        if (topText.length > 0) {
+          var bestT = topText[0].token;
+          violations[ti].suggestedToken = bestT.name;
+          violations[ti].suggestedTokenId = bestT.id;
+          violations[ti].message = 'Текст ' + violFontSize + 'px без стиля. Ближайший: ' + bestT.name;
+          violations[ti].candidates = topText.map(function(s){
+            return { id: s.token.id, name: s.token.name, value: s.token.value };
+          });
         }
       }
     }

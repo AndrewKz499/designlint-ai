@@ -166,6 +166,8 @@ export interface Violation {
   suggestedToken: string | null;
   /** ID стиля Figma для применения через Fix; null если рекомендации нет */
   suggestedTokenId: string | null;
+  /** Топ-N ближайших токенов-кандидатов для Combobox (включая suggestedTokenId как первый) */
+  candidates?: Array<{ id: string; name: string; value: string }>;
 }
 
 /** Итог проверки файла на соответствие дизайн-системе */
