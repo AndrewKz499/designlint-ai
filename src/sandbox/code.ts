@@ -158,4 +158,48 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     }
     return;
   }
+
+  if (msg.type === 'request-preview') {
+    var nodeId = msg.data.nodeId;
+    try {
+      var node = await figma.getNodeByIdAsync(nodeId);
+      if (!node || node.removed) {
+        figma.ui.postMessage({
+          type: 'preview-ready',
+          data: { nodeId: nodeId, pngBase64: null, error: 'Нода не найдена' },
+        });
+      } else if (typeof (node as any).exportAsync !== 'function') {
+        figma.ui.postMessage({
+          type: 'preview-ready',
+          data: { nodeId: nodeId, pngBase64: null, error: 'Нода не поддерживает экспорт' },
+        });
+      } else {
+        var bytes = await (node as any).exportAsync({
+          format: 'PNG',
+          constraint: { type: 'SCALE', value: 2 },
+        });
+        // Uint8Array → base64: используем встроенный figma.base64Encode если есть, иначе btoa
+        var base64: string;
+        if (typeof (figma as any).base64Encode === 'function') {
+          base64 = (figma as any).base64Encode(bytes);
+        } else {
+          var binary = '';
+          for (var i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          base64 = btoa(binary);
+        }
+        figma.ui.postMessage({
+          type: 'preview-ready',
+          data: { nodeId: nodeId, pngBase64: base64 },
+        });
+      }
+    } catch (err) {
+      figma.ui.postMessage({
+        type: 'preview-ready',
+        data: { nodeId: nodeId, pngBase64: null, error: String(err).slice(0, 120) },
+      });
+    }
+    return;
+  }
 };
