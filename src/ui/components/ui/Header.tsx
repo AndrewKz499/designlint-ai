@@ -7,14 +7,9 @@ interface HeaderProps {
 }
 
 const gearIcon = (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-    <circle cx="10" cy="10" r="3" stroke={colors.iconDefault} strokeWidth="1.5" />
-    <path
-      d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M3.697 3.697l1.414 1.414M14.889 14.889l1.414 1.414M3.697 16.303l1.414-1.414M14.889 5.111l1.414-1.414"
-      stroke={colors.iconDefault}
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
   </svg>
 );
 
@@ -23,15 +18,15 @@ export function Header({ onSettingsClick }: HeaderProps): React.ReactElement {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: `${spacing.s300}px ${spacing.s400}px`,
+    padding: `${spacing.s300}px 0`,
   };
 
   const titleStyle: React.CSSProperties = {
-    fontFamily: typography.heading.fontFamily,
-    fontWeight: typography.heading.fontWeight,
-    fontSize: typography.heading.fontSize,
-    lineHeight: typography.heading.lineHeight,
-    letterSpacing: typography.heading.letterSpacing,
+    fontFamily: typography.titlePage.fontFamily,
+    fontWeight: typography.titlePage.fontWeight,
+    fontSize: '32px',
+    lineHeight: 1.2,
+    letterSpacing: typography.titlePage.letterSpacing,
     color: colors.textDefault,
     margin: 0,
   };
