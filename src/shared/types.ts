@@ -72,6 +72,7 @@ export interface Token {
   value: string;
   /** Источник токена, например "Local Paint Styles" или "Variables/Colors" */
   source: string;
+  kind: 'paintStyles' | 'textStyles' | 'variables';
 }
 
 /** Обнаруженный источник токенов дизайн-системы в Figma-файле */
@@ -167,7 +168,7 @@ export interface Violation {
   /** ID стиля Figma для применения через Fix; null если рекомендации нет */
   suggestedTokenId: string | null;
   /** Топ-N ближайших токенов-кандидатов для Combobox (включая suggestedTokenId как первый) */
-  candidates?: Array<{ id: string; name: string; value: string }>;
+  candidates?: Array<{ id: string; name: string; value: string; kind: 'paintStyles' | 'textStyles' | 'variables' }>;
 }
 
 /** Итог проверки файла на соответствие дизайн-системе */

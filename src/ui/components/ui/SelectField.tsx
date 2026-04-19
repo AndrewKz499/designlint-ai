@@ -5,6 +5,7 @@ export interface SelectOption {
   id: string;
   label: string;
   swatch?: string;  // hex-цвет для квадратика слева, опционально
+  badge?: string;   // короткий бейдж справа от имени, например 'VAR' или 'STYLE'
 }
 
 interface Props {
@@ -62,6 +63,18 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
 
   const valueStyle: React.CSSProperties = { flex: 1, textAlign: 'left' };
 
+  const badgeStyle: React.CSSProperties = {
+    fontSize: '10px',
+    fontWeight: 600,
+    letterSpacing: '0.3px',
+    padding: '2px 6px',
+    marginLeft: 'auto',
+    background: colors.bgSecondary,
+    color: colors.textMuted,
+    borderRadius: radii.r100,
+    flexShrink: 0,
+  };
+
   const dropdownStyle: React.CSSProperties = {
     position: 'absolute',
     top: '100%',
@@ -92,6 +105,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
       <div style={selectStyle} onClick={() => setOpen(!open)}>
         {selected?.swatch && <div style={swatchStyle(selected.swatch)} />}
         <span style={valueStyle}>{selected?.label || placeholder || '—'}</span>
+        {selected?.badge && <span style={badgeStyle}>{selected.badge}</span>}
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
           <path d="M3 4.5L6 7.5L9 4.5" stroke={colors.textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -106,6 +120,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
             >
               {opt.swatch && <div style={swatchStyle(opt.swatch)} />}
               <span>{opt.label}</span>
+              {opt.badge && <span style={badgeStyle}>{opt.badge}</span>}
             </div>
           ))}
         </div>

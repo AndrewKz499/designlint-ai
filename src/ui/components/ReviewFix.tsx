@@ -305,7 +305,8 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
               value={selectedTokenId || ''}
               options={current.candidates.map(function(c): SelectOption {
                 var isColor = c.value.indexOf('#') === 0;
-                return { id: c.id, label: c.name, swatch: isColor ? c.value : undefined };
+                var badge = c.kind === 'variables' ? 'VAR' : 'STYLE';
+                return { id: c.id, label: c.name, swatch: isColor ? c.value : undefined, badge: badge };
               })}
               onChange={setSelectedTokenId}
             />

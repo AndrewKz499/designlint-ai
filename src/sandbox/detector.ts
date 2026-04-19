@@ -193,7 +193,7 @@ export function runDetection(
           violations[existingIndex].suggestedTokenId = best.id;
           violations[existingIndex].message = 'Цвет ' + color.hex + ' задан напрямую. Ближайший токен: ' + best.name;
           violations[existingIndex].candidates = top.map(function(s){
-            return { id: s.token.id, name: s.token.name, value: s.token.value };
+            return { id: s.token.id, name: s.token.name, value: s.token.value, kind: s.token.kind };
           });
         }
       }
@@ -267,7 +267,7 @@ export function runDetection(
           violations[ti].suggestedTokenId = bestT.id;
           violations[ti].message = 'Текст ' + violFontSize + 'px без стиля. Ближайший: ' + bestT.name;
           violations[ti].candidates = topText.map(function(s){
-            return { id: s.token.id, name: s.token.name, value: s.token.value };
+            return { id: s.token.id, name: s.token.name, value: s.token.value, kind: s.token.kind };
           });
         }
       }

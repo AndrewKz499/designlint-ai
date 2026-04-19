@@ -151,6 +151,7 @@ export async function buildSnapshot(enabledSources: string[]): Promise<Reference
         category,
         value,
         source: collection.name,
+        kind: 'variables' as const,
       });
     }
   }
@@ -170,6 +171,7 @@ export async function buildSnapshot(enabledSources: string[]): Promise<Reference
         category: 'color',
         value: rgbToHex(r, g, b),
         source: 'Local Paint Styles',
+        kind: 'paintStyles' as const,
       });
     }
   }
@@ -188,6 +190,7 @@ export async function buildSnapshot(enabledSources: string[]): Promise<Reference
         category: 'typography',
         value: fontSize + 'px/' + family + '/' + weight,
         source: 'Local Text Styles',
+        kind: 'textStyles' as const,
       });
     }
   }
