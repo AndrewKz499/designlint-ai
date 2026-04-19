@@ -135,11 +135,18 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   }
 
   if (msg.type === 'set-api-key') {
-    figma.clientStorage.setAsync('google-api-key', msg.data.key).then(function() {
-      figma.clientStorage.deleteAsync('anthropic-api-key');
+    try {
+      if (msg.data.key === '') {
+        await figma.clientStorage.deleteAsync('google-api-key');
+      } else {
+        await figma.clientStorage.setAsync('google-api-key', msg.data.key);
+        await figma.clientStorage.deleteAsync('anthropic-api-key');
+      }
       figma.ui.postMessage({ type: 'set-api-key-done' });
-      figma.notify('API-ключ сохранён');
-    });
+      figma.notify(msg.data.key === '' ? 'Ключ удалён' : 'API-ключ сохранён');
+    } catch (err) {
+      figma.notify('Ошибка: ' + String(err));
+    }
     return;
   }
 

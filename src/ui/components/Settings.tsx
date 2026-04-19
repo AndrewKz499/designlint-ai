@@ -71,6 +71,15 @@ export function Settings({ onBack }: Props) {
     setKey('');
   };
 
+  const handleRemove = () => {
+    parent.postMessage({
+      pluginMessage: { type: 'set-api-key', data: { key: '' } },
+    }, '*');
+    setKey('');
+    setHasExisting(false);
+    setSaved(true);
+  };
+
   return (
     <div style={{ padding: spacing.s400, fontFamily: typography.body.fontFamily }}>
       <div
@@ -134,19 +143,21 @@ export function Settings({ onBack }: Props) {
         {saved ? 'Сохранено ✓' : 'Сохранить ключ'}
       </Button>
       {hasExisting && (
-        <div style={{ marginTop: spacing.s300 }}>
+        <div style={{ marginTop: spacing.s300, display: 'flex', flexDirection: 'column', gap: spacing.s200 }}>
           <Button variant="secondary" onClick={handleTestKey} disabled={testing}>
             {testing ? 'Проверяю...' : 'Проверить ключ'}
           </Button>
           {testResult && (
             <div style={{
-              marginTop: spacing.s200,
               fontSize: 13,
               color: testResult.indexOf('✓') === 0 ? '#22C55E' : '#EF4444',
             }}>
               {testResult}
             </div>
           )}
+          <Button variant="secondary" onClick={handleRemove}>
+            {UI.settingsRemoveKey}
+          </Button>
         </div>
       )}
 

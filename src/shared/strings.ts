@@ -119,4 +119,7 @@ export const UI = {
 
   aiToggleLabel: 'Использовать AI для объяснений',
   aiToggleHint:  'Когда выключено — плагин работает только на правилах без запросов к Gemini',
+
+  settingsRemoveKey:  'Удалить ключ',
+  settingsKeyRemoved: 'Ключ удалён',
 };
