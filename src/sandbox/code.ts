@@ -23,9 +23,17 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   // Запуск сканирования документа (Mode 1)
   if (msg.type === 'start-scan') {
     try {
-      const scope = (msg.data && msg.data.scope) ? msg.data.scope : 'selection';
+      var scope = (msg.data && msg.data.scope) ? msg.data.scope : 'selection';
+      if (scope === 'selection' && figma.currentPage.selection.length === 0) {
+        figma.ui.postMessage({ type: 'scan-error', data: { code: 'no-selection' } });
+        return;
+      }
       const scanResult = await scanDocument(scope);
       const snapshot = await loadSnapshot();
+      if (snapshot === null || snapshot.tokens.length === 0) {
+        figma.ui.postMessage({ type: 'scan-error', data: { code: 'no-tokens' } });
+        return;
+      }
 
       const detection = runDetection(scanResult, snapshot);
       figma.ui.postMessage({ type: 'scan-complete', data: scanResult });

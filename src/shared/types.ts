@@ -239,6 +239,8 @@ export type PluginMessage =
 
   /** Sandbox завершил аудит и возвращает результат с нарушениями */
   | { type: 'detection-complete'; data: DetectionResult }
+  /** Sandbox сообщает об ошибке сканирования (например, нет выделения) */
+  | { type: 'scan-error'; data: { code: 'no-selection' | 'no-tokens' | 'no-ai-key' } }
 
   // --- Навигация и маркеры на холсте ---
 

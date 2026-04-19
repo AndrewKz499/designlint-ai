@@ -5,6 +5,7 @@ import { VIOLATION_TITLE, VIOLATION_CATEGORY, CATEGORY_META, UI } from '../share
 import type { Category } from '../shared/strings';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
 import { ReviewFix } from './components/ReviewFix';
+import { ErrorCard } from './components/ErrorCard';
 import { ScopeSelector } from './components/ScopeSelector';
 import { Header } from './components/ui/Header';
 import { Button } from './components/ui/Button';
@@ -73,6 +74,8 @@ export function App() {
   const [sessionStartMs, setSessionStartMs] = useState<number | null>(null);
   const [fixedCount, setFixedCount] = useState<number>(0);
   const [aiEnabled, setAiEnabled] = useState<boolean>(true);
+  const [scanErrorCode, setScanErrorCode] = useState<'no-selection' | 'no-tokens' | 'no-ai-key' | null>(null);
+  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
 
   useEffect(() => {
     if (detection && detection.violations.length > 0) {
@@ -104,11 +107,20 @@ export function App() {
         }
       } else if (msg.type === 'ai-enabled-response') {
         setAiEnabled(msg.data.enabled);
+      } else if (msg.type === 'scan-error') {
+        setScanErrorCode(msg.data.code);
+        setStatus('idle');
+        setProgress(null);
+      } else if (msg.type === 'api-key-response') {
+        setHasApiKey(msg.data.key !== null && msg.data.key !== '');
+      } else if (msg.type === 'set-api-key-done') {
+        setHasApiKey(true);
       }
     };
 
     window.addEventListener('message', handler);
     parent.postMessage({ pluginMessage: { type: 'get-ai-enabled' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'get-api-key' } }, '*');
     return () => window.removeEventListener('message', handler);
   }, []);
 
@@ -230,6 +242,7 @@ export function App() {
         onCheckAgain={handleReset}
         onClearMarkers={() => sendMessage({ type: 'clear-markers' })}
         aiEnabled={aiEnabled}
+        hasApiKey={hasApiKey}
       />
     );
   }
@@ -239,7 +252,27 @@ export function App() {
     <div style={styles.root}>
       <Header onSettingsClick={handleGoToMode0} />
 
-      {status === 'idle' && (
+      {scanErrorCode === 'no-selection' && (
+        <ErrorCard
+          icon="🎯"
+          title="Нет выделения"
+          description={UI.errNoSelection}
+          actionLabel="Попробовать снова"
+          onAction={() => setScanErrorCode(null)}
+        />
+      )}
+
+      {scanErrorCode === 'no-tokens' && (
+        <ErrorCard
+          icon="🎨"
+          title="Нет токенов дизайн-системы"
+          description={UI.errNoTokens}
+          actionLabel="Понятно"
+          onAction={() => setScanErrorCode(null)}
+        />
+      )}
+
+      {!scanErrorCode && status === 'idle' && (
         <>
           <p style={styles.hint}>Готов к сканированию</p>
           <div style={{ marginTop: 8, marginBottom: 8 }}>
@@ -249,7 +282,7 @@ export function App() {
         </>
       )}
 
-      {status === 'scanning' && (
+      {!scanErrorCode && status === 'scanning' && (
         <>
           <div style={styles.scanningRow}>
             <Spinner size={16} />
@@ -263,7 +296,7 @@ export function App() {
         </>
       )}
 
-      {status === 'done' && detection !== null && (
+      {!scanErrorCode && status === 'done' && detection !== null && (
         <>
           <div style={{
             fontFamily: typography.heading.fontFamily,
@@ -375,7 +408,7 @@ export function App() {
       )}
 
       {/* Сканирование завершено, но detection ещё не пришёл */}
-      {status === 'done' && detection === null && result !== null && (
+      {!scanErrorCode && status === 'done' && detection === null && result !== null && (
         <p style={styles.hint}>Анализ результатов...</p>
       )}
       <ResizeHandle />

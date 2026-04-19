@@ -8,6 +8,7 @@ import { IconButton } from './ui/IconButton';
 import { SelectField, SelectOption } from './ui/SelectField';
 import { callGemini } from '../aiClient';
 import { colors, typography, spacing, radii } from '../tokens';
+import { ErrorCard } from './ErrorCard';
 
 function sendMessage(msg: PluginMessage): void {
   parent.postMessage({ pluginMessage: msg }, '*');
@@ -22,9 +23,10 @@ interface Props {
   onCheckAgain: () => void;
   onClearMarkers: () => void;
   aiEnabled: boolean;
+  hasApiKey: boolean;
 }
 
-export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, metrics, onCheckAgain, onClearMarkers, aiEnabled }: Props) {
+export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, metrics, onCheckAgain, onClearMarkers, aiEnabled, hasApiKey }: Props) {
   // Снимок исходных violations на монтировании — для стабильного знаменателя счётчика
   const violationsSnapshotRef = useRef<Violation[]>(violations);
   const explanationsRef = useRef<Map<string, string>>(new Map());
@@ -108,6 +110,12 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
   useEffect(() => {
     if (current === null || selectedTokenId === null) return;
     if (!aiEnabled) {
+      setExplanation('');
+      setExplaining(false);
+      setExplainError(false);
+      return;
+    }
+    if (!hasApiKey) {
       setExplanation('');
       setExplaining(false);
       setExplainError(false);
@@ -302,7 +310,16 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
               onChange={setSelectedTokenId}
             />
           )}
-          {aiEnabled && (
+          {aiEnabled && !hasApiKey && (
+            <ErrorCard
+              icon="🔑"
+              title="AI-ключ не указан"
+              description={UI.errNoAiKey}
+              actionLabel="Открыть настройки"
+              onAction={onSettingsClick ?? (() => {})}
+            />
+          )}
+          {aiEnabled && hasApiKey && (
             <>
               {explaining && (
                 <div style={styles.explanation}>Думаю над объяснением...</div>

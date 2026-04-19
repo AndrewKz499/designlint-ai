@@ -99,8 +99,8 @@ export const UI = {
   sdRadiusLabel:    'Скругления',
 
   errNoSelection:   'Выделите фрейм или Section, чтобы начать проверку.',
-  errNoTokens:      'В файле нет токенов. Подключите библиотеку или загрузите JSON.',
-  errNoAiKey:       'AI-ключ не указан. Добавьте его в Настройках.',
+  errNoTokens:      'В файле нет стилей и Variables. Добавьте цветовые стили или опубликуйте библиотеку, чтобы плагин мог сравнивать макет с системой.',
+  errNoAiKey:       'Для AI-объяснений нужен ключ Google Gemini. Добавьте его в Настройках или выключите тоггл «Использовать AI» там же.',
 
   reportTitle:        'Готово',
   reportFixedLabel:   (fixed: number, total: number) => `Исправлено ${fixed} из ${total}`,
