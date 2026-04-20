@@ -17,14 +17,31 @@ export async function fixViolation(
   const node = figma.getNodeById(nodeId);
   if (node === null) return false;
 
-  // --- Цветовые нарушения: привязать Paint Style ---
+  // --- Цветовые нарушения: привязать Paint Style или Variable ---
   if (
     violationType === 'hardcoded_color' ||
     violationType === 'detached_style' ||
     violationType === 'similar_to_token'
   ) {
-    const style = await figma.getStyleByIdAsync(tokenId);
-    if (style === null) return false;
+    // Ветка Variable (ID начинается с "VariableID:")
+    if (tokenId.indexOf('VariableID:') === 0) {
+      var variable = await figma.variables.getVariableByIdAsync(tokenId);
+      if (!variable) return false;
+      // Проверка что нода поддерживает fills
+      var fillsNode = node as any;
+      if (!fillsNode.fills || !Array.isArray(fillsNode.fills) || fillsNode.fills.length === 0) return false;
+      // Клонируем массив fills и привязываем первый fill к Variable
+      var fills = fillsNode.fills.slice();
+      var firstFill = Object.assign({}, fills[0]);
+      firstFill = figma.variables.setBoundVariableForPaint(firstFill, 'color', variable);
+      fills[0] = firstFill;
+      fillsNode.fills = fills;
+      return true;
+    }
+
+    // Ветка Style (tokenId = "S:..." или обычный Style ID)
+    var style = await figma.getStyleByIdAsync(tokenId);
+    if (!style) return false;
 
     // Проверяем, что у ноды есть свойство fillStyleId
     if (!('fillStyleId' in node)) return false;
