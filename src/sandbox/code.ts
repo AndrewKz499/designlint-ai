@@ -41,7 +41,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       // Автоматически расставляем маркеры после завершения аудита
       await createMarkers(detection.violations);
     } catch (err) {
-      figma.notify('Ошибка сканирования: ' + String(err));
+      figma.notify('Не удалось запустить сканирование: ' + String(err));
     }
     return;
   }
@@ -59,7 +59,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         figma.ui.postMessage({ type: 'snapshot-loaded', data: { snapshot: null, isStale: false } });
       }
     } catch (err) {
-      figma.notify('Ошибка: ' + String(err));
+      figma.notify('Не удалось получить снимок выделения: ' + String(err));
     }
     return;
   }
@@ -70,7 +70,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       const sources = await discoverSources();
       figma.ui.postMessage({ type: 'ds-sources-found', data: { sources } });
     } catch (err) {
-      figma.notify('Ошибка: ' + String(err));
+      figma.notify('Не удалось найти библиотеки: ' + String(err));
     }
     return;
   }
@@ -88,7 +88,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
 
       figma.ui.postMessage({ type: 'ds-scan-complete', data: { snapshot } });
     } catch (err) {
-      figma.notify('Ошибка: ' + String(err));
+      figma.notify('Не удалось просканировать дизайн-систему: ' + String(err));
     }
     return;
   }
@@ -100,7 +100,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     try {
       await navigateToNode(msg.data.nodeId, msg.data.pageId);
     } catch (err) {
-      figma.notify('Ошибка: ' + String(err));
+      figma.notify('Не удалось перейти к элементу: ' + String(err));
     }
     return;
   }
@@ -110,7 +110,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     try {
       await createMarkers(msg.data.violations);
     } catch (err) {
-      figma.notify('Ошибка: ' + String(err));
+      figma.notify('Не удалось создать маркеры: ' + String(err));
     }
     return;
   }
@@ -120,7 +120,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     try {
       await clearMarkers();
     } catch (err) {
-      figma.notify('Ошибка: ' + String(err));
+      figma.notify('Не удалось убрать маркеры: ' + String(err));
     }
     return;
   }
@@ -145,7 +145,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       figma.ui.postMessage({ type: 'set-api-key-done' });
       figma.notify(msg.data.key === '' ? 'Ключ удалён' : 'API-ключ сохранён');
     } catch (err) {
-      figma.notify('Ошибка: ' + String(err));
+      figma.notify('Не удалось сохранить ключ: ' + String(err));
     }
     return;
   }
@@ -191,7 +191,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       var success = await fixViolation(msg.data.nodeId, msg.data.tokenId, msg.data.violationType);
       figma.ui.postMessage({ type: 'fix-complete', data: { nodeId: msg.data.nodeId, success } });
     } catch (err) {
-      figma.notify('Ошибка: ' + String(err));
+      figma.notify('Не удалось применить токен: ' + String(err));
     }
     return;
   }
