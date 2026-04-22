@@ -189,9 +189,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       // которую Cmd+Z сможет откатить одним нажатием
       figma.commitUndo();
       var success = await fixViolation(msg.data.nodeId, msg.data.tokenId, msg.data.violationType);
+      if (!success) {
+        figma.notify('Не удалось применить токен. Попробуйте другой кандидат.', { error: true });
+      }
       figma.ui.postMessage({ type: 'fix-complete', data: { nodeId: msg.data.nodeId, success } });
     } catch (err) {
-      figma.notify('Не удалось применить токен: ' + String(err));
+      figma.notify('Не удалось применить токен: ' + String(err), { error: true });
+      figma.ui.postMessage({ type: 'fix-complete', data: { nodeId: msg.data.nodeId, success: false } });
     }
     return;
   }
