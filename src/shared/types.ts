@@ -259,9 +259,9 @@ export type PluginMessage =
   /** Sandbox отвечает: исправление выполнено или не удалось */
   | { type: 'fix-complete'; data: { nodeId: string; success: boolean } }
   /** UI просит sandbox экспортировать PNG-превью ноды */
-  | { type: 'request-preview'; data: { nodeId: string } }
+  | { type: 'request-preview'; data: { nodeId: string; tag?: 'before' | 'after' } }
   /** Sandbox возвращает PNG как base64 (без префикса data:image/png;base64,); null если экспорт не удался */
-  | { type: 'preview-ready'; data: { nodeId: string; pngBase64: string | null; error?: string } }
+  | { type: 'preview-ready'; data: { nodeId: string; pngBase64: string | null; error?: string; tag?: 'before' | 'after' } }
   /** UI сообщает: пользователь нажал Ignore — скрыть нарушение до следующего скана */
   | { type: 'ignore-violation'; data: { violationId: string } }
 

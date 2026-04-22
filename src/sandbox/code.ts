@@ -198,17 +198,18 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
 
   if (msg.type === 'request-preview') {
     var nodeId = msg.data.nodeId;
+    var tag = msg.data.tag;
     try {
       var node = await figma.getNodeByIdAsync(nodeId);
       if (!node || node.removed) {
         figma.ui.postMessage({
           type: 'preview-ready',
-          data: { nodeId: nodeId, pngBase64: null, error: 'Нода не найдена' },
+          data: { nodeId: nodeId, pngBase64: null, error: 'Нода не найдена', tag: tag },
         });
       } else if (typeof (node as any).exportAsync !== 'function') {
         figma.ui.postMessage({
           type: 'preview-ready',
-          data: { nodeId: nodeId, pngBase64: null, error: 'Нода не поддерживает экспорт' },
+          data: { nodeId: nodeId, pngBase64: null, error: 'Нода не поддерживает экспорт', tag: tag },
         });
       } else {
         var bytes = await (node as any).exportAsync({
@@ -228,13 +229,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         }
         figma.ui.postMessage({
           type: 'preview-ready',
-          data: { nodeId: nodeId, pngBase64: base64 },
+          data: { nodeId: nodeId, pngBase64: base64, tag: tag },
         });
       }
     } catch (err) {
       figma.ui.postMessage({
         type: 'preview-ready',
-        data: { nodeId: nodeId, pngBase64: null, error: String(err).slice(0, 120) },
+        data: { nodeId: nodeId, pngBase64: null, error: String(err).slice(0, 120), tag: tag },
       });
     }
     return;

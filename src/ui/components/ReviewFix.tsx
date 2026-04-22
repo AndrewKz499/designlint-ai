@@ -42,6 +42,11 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
   const [previewError, setPreviewError] = useState<string>('');
   const previewCacheRef = useRef<Map<string, string>>(new Map());
 
+  const [afterBase64, setAfterBase64] = useState<string | null>(null);
+  const [afterLoading, setAfterLoading] = useState(false);
+  const [afterError, setAfterError] = useState<string | null>(null);
+  const afterCacheRef = useRef<Map<string, string>>(new Map());
+
   // Фильтруем нарушения — убираем игнорированные и исправленные
   const active = violations.filter(
     (v) => !ignoredIds.has(v.id) && !fixedIds.has(v.nodeId),
@@ -64,6 +69,22 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
           return next;
         });
         if (onFixApplied) onFixApplied(msg.data.nodeId);
+
+        const nodeId = msg.data.nodeId;
+        const cachedAfter = afterCacheRef.current.get(nodeId);
+        if (cachedAfter) {
+          setAfterBase64(cachedAfter);
+          setAfterLoading(false);
+          setAfterError(null);
+        } else {
+          setAfterLoading(true);
+          setAfterBase64(null);
+          setAfterError(null);
+          parent.postMessage(
+            { pluginMessage: { type: 'request-preview', data: { nodeId: nodeId, tag: 'after' } } },
+            '*'
+          );
+        }
       }
     };
     window.addEventListener('message', handler);
@@ -173,6 +194,22 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
       if (!msg || msg.type !== 'preview-ready') return;
       if (current === null || msg.data.nodeId !== current.nodeId) return;
 
+      const isAfter = msg.data.tag === 'after';
+
+      if (isAfter) {
+        setAfterLoading(false);
+        if (msg.data.pngBase64) {
+          setAfterBase64(msg.data.pngBase64);
+          setAfterError(null);
+          afterCacheRef.current.set(msg.data.nodeId, msg.data.pngBase64);
+        } else {
+          setAfterBase64(null);
+          setAfterError(msg.data.error || 'Не удалось построить превью');
+        }
+        return;
+      }
+
+      // Ветка "До" — без изменений
       if (msg.data.pngBase64) {
         previewCacheRef.current.set(current.nodeId, msg.data.pngBase64);
         setPreviewBase64(msg.data.pngBase64);
