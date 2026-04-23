@@ -162,12 +162,14 @@ export function App() {
     setCurrentView('scanner');
   };
 
+  // Единый источник отфильтрованных нарушений — по выбранным чекбоксам категорий
+  const filteredViolations = detection
+    ? detection.violations.filter((v) => selectedCategories.has(VIOLATION_CATEGORY[v.type]))
+    : [];
+
   const handleBulkFix = () => {
     if (!detection) return;
-    const toFix = detection.violations.filter((v) => {
-      const cat = VIOLATION_CATEGORY[v.type];
-      return selectedCategories.has(cat) && v.suggestedTokenId !== null;
-    });
+    const toFix = filteredViolations.filter((v) => v.suggestedTokenId !== null);
     if (toFix.length === 0) return;
     const fixedNodeIds = new Set<string>();
     for (let i = 0; i < toFix.length; i++) {
@@ -224,7 +226,7 @@ export function App() {
   if (currentView === 'review') {
     return (
       <ReviewFix
-        violations={detection !== null ? detection.violations : []}
+        violations={filteredViolations}
         onBack={handleBackToDashboard}
         onFixApplied={handleFixApplied}
         onSettingsClick={() => setCurrentView('settings')}
@@ -307,7 +309,7 @@ export function App() {
             color: colors.textDefault,
             marginBottom: spacing.s200,
           }}>
-            {UI.dashErrorsTitle(detection.violations.length)}
+            {UI.dashErrorsTitle(filteredViolations.length)}
           </div>
           {result && (
             <div style={{ marginBottom: spacing.s300 }}>
@@ -318,16 +320,25 @@ export function App() {
           {detection.violations.length > 0 && (
             <div style={{ marginBottom: spacing.s300 }}>
               {((): React.ReactNode => {
-                // Группируем нарушения по категориям
-                const grouped: Partial<Record<Category, typeof detection.violations>> = {};
+                // Группировка всех нарушений — основа списка чекбоксов
+                const allGrouped: Partial<Record<Category, typeof detection.violations>> = {};
                 for (let i = 0; i < detection.violations.length; i++) {
                   const v = detection.violations[i];
                   const cat = VIOLATION_CATEGORY[v.type];
-                  if (!grouped[cat]) grouped[cat] = [];
-                  grouped[cat]!.push(v);
+                  if (!allGrouped[cat]) allGrouped[cat] = [];
+                  allGrouped[cat]!.push(v);
                 }
-                return (Object.keys(grouped) as Category[]).map((cat) => {
-                  const items = grouped[cat]!;
+                // Группировка отфильтрованных — для счётчиков рядом с чекбоксом
+                const filteredGrouped: Partial<Record<Category, typeof detection.violations>> = {};
+                for (let i = 0; i < filteredViolations.length; i++) {
+                  const v = filteredViolations[i];
+                  const cat = VIOLATION_CATEGORY[v.type];
+                  if (!filteredGrouped[cat]) filteredGrouped[cat] = [];
+                  filteredGrouped[cat]!.push(v);
+                }
+                return (Object.keys(allGrouped) as Category[]).map((cat) => {
+                  const items = allGrouped[cat]!;
+                  const filteredCount = (filteredGrouped[cat] || []).length;
                   const isSelected = selectedCategories.has(cat);
                   return (
                     <div key={cat} style={{ marginBottom: spacing.s200 }}>
@@ -346,7 +357,7 @@ export function App() {
                           }}
                           label={CATEGORY_META[cat].emoji + ' ' + CATEGORY_META[cat].label}
                         />
-                        <strong style={{ color: colors.textDefault, fontSize: typography.body.fontSize }}>{items.length}</strong>
+                        <strong style={{ color: colors.textDefault, fontSize: typography.body.fontSize }}>{filteredCount}</strong>
                       </div>
                       {/* Список нарушений внутри категории */}
                       <div style={{ paddingLeft: 28 }}>
@@ -392,7 +403,7 @@ export function App() {
             </Button>
             <Button
               variant="secondary"
-              disabled={detection.violations.length === 0}
+              disabled={filteredViolations.length === 0}
               onClick={() => setCurrentView('review')}
             >
               {UI.dashReviewOne}
