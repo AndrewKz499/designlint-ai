@@ -113,7 +113,7 @@ export const UI = {
   // О плагине
   aboutTitle:       'О плагине',
   aboutDescription: 'Аудит дизайн-систем в Figma на языке дизайнера',
-  aboutVersion:     'Версия 0.12.1',
+  aboutVersion:     'Версия 0.14.11',
   aboutFeedback:    'Обратная связь',
 
   aiToggleLabel: 'Использовать AI для объяснений',
