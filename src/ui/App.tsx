@@ -246,23 +246,25 @@ export function App() {
       <Header onSettingsClick={handleGoToMode0} />
 
       {scanErrorCode === 'no-selection' && (
-        <ErrorCard
-          icon="🎯"
-          title="Нет выделения"
-          description={UI.errNoSelection}
-          actionLabel="Попробовать снова"
-          onAction={() => setScanErrorCode(null)}
-        />
+        <div style={{ marginTop: 'auto' }}>
+          <ErrorCard
+            title="Нет выделения"
+            description={UI.errNoSelection}
+            actionLabel="Попробовать снова"
+            onAction={() => setScanErrorCode(null)}
+          />
+        </div>
       )}
 
       {scanErrorCode === 'no-tokens' && (
-        <ErrorCard
-          icon="🎨"
-          title="Нет токенов дизайн-системы"
-          description={UI.errNoTokens}
-          actionLabel="Понятно"
-          onAction={() => setScanErrorCode(null)}
-        />
+        <div style={{ marginTop: 'auto' }}>
+          <ErrorCard
+            title="Нет токенов дизайн-системы"
+            description={UI.errNoTokens}
+            actionLabel="Понятно"
+            onAction={() => setScanErrorCode(null)}
+          />
+        </div>
       )}
 
       {!scanErrorCode && status === 'idle' && (
@@ -426,6 +428,10 @@ const styles = {
     fontFamily: typography.body.fontFamily,
     fontSize: '13px',
     color: colors.content,
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    boxSizing: 'border-box',
   },
   hint: {
     margin: `0 0 ${spacing.s400}px`,

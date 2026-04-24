@@ -4,6 +4,7 @@ import { SOURCE_LABEL, UI } from '../../shared/strings';
 import { ScopeSelector } from './ScopeSelector';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
+import { colors, typography, spacing } from '../tokens';
 
 type Step = 'sources' | 'scanning' | 'result';
 
@@ -94,14 +95,12 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
         <ul style={styles.sourceList}>
           {sources.map((source) => (
             <li key={source.name} style={styles.sourceItem}>
-              <div style={styles.sourceRow}>
-                <Checkbox
-                  checked={source.enabled}
-                  onChange={() => handleToggleSource(source.name)}
-                  label={displaySourceName(source)}
-                />
-                <span style={styles.sourceCount}>({source.tokenCount})</span>
-              </div>
+              <Checkbox
+                checked={source.enabled}
+                onChange={() => handleToggleSource(source.name)}
+                label={displaySourceName(source)}
+              />
+              <span style={styles.sourceCount}>({source.tokenCount})</span>
             </li>
           ))}
         </ul>
@@ -137,7 +136,6 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
   const typographyCount = snapshot.tokens.filter((t) => t.category === 'typography').length;
   const spacingCount = snapshot.tokens.filter((t) => t.category === 'spacing').length;
   const radiusCount = snapshot.tokens.filter((t) => t.category === 'radius').length;
-  const issueCount = snapshot.validation.issues.length;
 
   return (
     <div style={styles.root}>
@@ -150,15 +148,7 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
         <li>{UI.sdRadiusLabel}: <strong>{radiusCount}</strong></li>
       </ul>
 
-      {issueCount > 0 && (
-        <div style={styles.warningBanner}>
-          {issueCount === 1
-            ? '1 замечание к токенам'
-            : issueCount + ' замечания к токенам'}
-        </div>
-      )}
-
-      <div style={{ marginTop: 12, marginBottom: 12 }}>
+      <div style={{ marginTop: spacing.s300, marginBottom: spacing.s300 }}>
         <ScopeSelector value={scope} onChange={onScopeChange} />
       </div>
       <Button onClick={onComplete}>
@@ -175,59 +165,55 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
 // Стили
 // ---------------------------------------------------------------------------
 
-const styles = {
+const styles: Record<string, React.CSSProperties> = {
   root: {
-    padding: '16px',
-    fontFamily: 'Inter, sans-serif',
-    fontSize: '13px',
-    color: '#1a1a1a',
+    padding: spacing.s400,
+    fontFamily: typography.body.fontFamily,
+    fontSize: typography.body.fontSize,
+    color: colors.content,
     display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '12px',
+    flexDirection: 'column',
+    gap: spacing.s300,
   },
   title: {
+    fontFamily: typography.h3.fontFamily,
+    fontSize: typography.h3.fontSize,
+    fontWeight: typography.h3.fontWeight,
+    lineHeight: typography.h3.lineHeight,
+    color: colors.content,
     margin: 0,
-    fontSize: '14px',
-    fontWeight: 600,
   },
   subtitle: {
+    fontFamily: typography.body.fontFamily,
+    fontSize: typography.body.fontSize,
+    fontWeight: typography.body.fontWeight,
+    lineHeight: typography.body.lineHeight,
+    color: colors.contentMuted,
     margin: 0,
-    color: '#555',
-    lineHeight: 1.5,
   },
   sourceList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.s200,
     listStyle: 'none',
     padding: 0,
     margin: 0,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
   },
   sourceItem: {
-    display: 'block',
-  },
-  sourceRow: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   sourceCount: {
-    color: '#888',
+    color: colors.contentMuted,
+    fontSize: typography.body.fontSize,
   },
   resultList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.s200,
     listStyle: 'none',
     padding: 0,
     margin: 0,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '6px',
   },
-  warningBanner: {
-    padding: '8px 12px',
-    background: '#FFF8E1',
-    border: '1px solid #FFD54F',
-    borderRadius: '6px',
-    color: '#7A5C00',
-    fontSize: '12px',
-  },
-} satisfies Record<string, React.CSSProperties>;
+};

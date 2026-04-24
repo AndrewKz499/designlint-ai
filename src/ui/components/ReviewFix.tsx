@@ -350,7 +350,6 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
           )}
           {aiEnabled && !hasApiKey && (
             <ErrorCard
-              icon="🔑"
               title="AI-ключ не указан"
               description={UI.errNoAiKey}
               actionLabel="Открыть настройки"
