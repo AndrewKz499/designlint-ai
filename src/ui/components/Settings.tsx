@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import type { PluginMessage } from '../../shared/types';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
-import { colors, typography, spacing, radii, borders } from '../tokens';
+import { Input } from './ui/Input';
+import { colors, typography, spacing, borders } from '../tokens';
 import { callGemini, clearCachedKey } from '../aiClient';
 import { UI } from '../../shared/strings';
 
@@ -120,22 +121,14 @@ export function Settings({ onBack }: Props) {
           Получить ключ на aistudio.google.com
         </a>
       </div>
-      <input
-        type="password"
-        placeholder="AIza..."
-        value={key}
-        onChange={(e) => setKey(e.target.value)}
-        style={{
-          width: '100%',
-          padding: spacing.s300,
-          fontSize: typography.body.fontSize,
-          fontFamily: typography.body.fontFamily,
-          border: '1px solid ' + colors.border,
-          borderRadius: radii.r200,
-          marginBottom: spacing.s300,
-          boxSizing: 'border-box',
-        }}
-      />
+      <div style={{ marginBottom: spacing.s300 }}>
+        <Input
+          type="password"
+          placeholder="AIza..."
+          value={key}
+          onChange={setKey}
+        />
+      </div>
       <Button onClick={handleSave} disabled={key.trim().length === 0}>
         {saved ? 'Сохранено ✓' : 'Сохранить ключ'}
       </Button>
