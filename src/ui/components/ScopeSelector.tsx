@@ -39,7 +39,7 @@ export function ScopeSelector({ value, onChange }: Props) {
 
 const styles = {
   label: {
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.contentMuted,
     marginBottom: spacing.s200,
   } as React.CSSProperties,

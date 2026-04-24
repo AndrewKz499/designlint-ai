@@ -36,7 +36,7 @@ export function Tag({ children, onRemove }: TagProps): React.ReactElement {
     fontSize: typography.body.fontSize,
     fontWeight: typography.body.fontWeight,
     fontFamily: typography.body.fontFamily,
-    lineHeight: typography.bodySingleLine.lineHeight,
+    lineHeight: typography.bodyBold.lineHeight,
   };
 
   return (

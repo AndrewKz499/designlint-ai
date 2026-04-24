@@ -30,35 +30,49 @@ export const colors = {
 } as const;
 
 export const typography = {
-  titlePage: {
+  h1: {
     fontFamily: 'Inter',
+    fontSize: '40px',
     fontWeight: 700,
-    fontSize: 48,
-    lineHeight: 1.2,
-    letterSpacing: '-0.96px',
+    lineHeight: '44px',
+    letterSpacing: '-0.02em',
   },
-  heading: {
+  h2: {
     fontFamily: 'Inter',
+    fontSize: '36px',
+    fontWeight: 700,
+    lineHeight: '40px',
+    letterSpacing: '-0.01em',
+  },
+  h3: {
+    fontFamily: 'Inter',
+    fontSize: '24px',
     fontWeight: 600,
-    fontSize: 24,
-    lineHeight: 1.2,
-    letterSpacing: '-0.48px',
+    lineHeight: '32px',
+    letterSpacing: '-0.01em',
   },
   body: {
     fontFamily: 'Inter',
+    fontSize: '16px',
     fontWeight: 400,
-    fontSize: 16,
-    lineHeight: 1.4,
-    letterSpacing: '0',
+    lineHeight: '20px',
+    letterSpacing: 0,
   },
-  bodySingleLine: {
+  bodyBold: {
     fontFamily: 'Inter',
-    fontWeight: 400,
-    fontSize: 16,
-    lineHeight: 1.0,
-    letterSpacing: '0',
+    fontSize: '16px',
+    fontWeight: 600,
+    lineHeight: '20px',
+    letterSpacing: 0,
   },
-};
+  caption: {
+    fontFamily: 'Inter',
+    fontSize: '13px',
+    fontWeight: 400,
+    lineHeight: '16px',
+    letterSpacing: 0,
+  },
+} as const;
 
 export const spacing = {
   s200: 8,

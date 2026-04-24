@@ -33,7 +33,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
   const wrapStyle: React.CSSProperties = { position: 'relative', width: '100%' };
 
   const labelStyle: React.CSSProperties = {
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.content,
     marginBottom: spacing.s200,
     display: 'block',
@@ -50,7 +50,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
     border: `${borders.stroke}px solid ${colors.border}`,
     borderRadius: radii.r200,
     cursor: 'pointer',
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.content,
     boxSizing: 'border-box',
   };
@@ -96,7 +96,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
     padding: `${spacing.s300}px ${spacing.s400}px`,
     cursor: 'pointer',
     background: isSelected ? colors.bgSecondary : 'transparent',
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
   });
 
   return (

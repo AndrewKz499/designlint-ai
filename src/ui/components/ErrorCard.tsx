@@ -34,13 +34,13 @@ const styles = {
     lineHeight: 1,
   } as React.CSSProperties,
   title: {
-    fontFamily: typography.heading.fontFamily,
-    fontSize: typography.heading.fontSize + 'px',
-    fontWeight: typography.heading.fontWeight,
+    fontFamily: typography.h3.fontFamily,
+    fontSize: typography.h3.fontSize,
+    fontWeight: typography.h3.fontWeight,
     color: colors.content,
   } as React.CSSProperties,
   description: {
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.contentMuted,
     lineHeight: 1.4,
   } as React.CSSProperties,

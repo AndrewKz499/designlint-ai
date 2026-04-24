@@ -55,9 +55,9 @@ const styles = {
     padding: spacing.s400,
   } as React.CSSProperties,
   title: {
-    fontFamily: typography.heading.fontFamily,
-    fontSize: typography.heading.fontSize + 'px',
-    fontWeight: typography.heading.fontWeight,
+    fontFamily: typography.h3.fontFamily,
+    fontSize: typography.h3.fontSize,
+    fontWeight: typography.h3.fontWeight,
     color: colors.content,
   } as React.CSSProperties,
   metrics: {
@@ -66,7 +66,7 @@ const styles = {
     gap: spacing.s200,
   } as React.CSSProperties,
   metricRow: {
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.content,
   } as React.CSSProperties,
 };

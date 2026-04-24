@@ -22,11 +22,11 @@ export function Header({ onSettingsClick }: HeaderProps): React.ReactElement {
   };
 
   const titleStyle: React.CSSProperties = {
-    fontFamily: typography.titlePage.fontFamily,
-    fontWeight: typography.titlePage.fontWeight,
+    fontFamily: typography.h1.fontFamily,
+    fontWeight: typography.h1.fontWeight,
     fontSize: '32px',
     lineHeight: 1.2,
-    letterSpacing: typography.titlePage.letterSpacing,
+    letterSpacing: typography.h1.letterSpacing,
     color: colors.content,
     margin: 0,
   };

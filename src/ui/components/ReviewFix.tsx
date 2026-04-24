@@ -419,13 +419,13 @@ const styles = {
     marginBottom: spacing.s300,
   },
   categoryLabel: {
-    fontSize: typography.body.fontSize + 'px',
-    fontWeight: typography.heading.fontWeight,
+    fontSize: typography.body.fontSize,
+    fontWeight: typography.h3.fontWeight,
     color: colors.content,
     marginRight: spacing.s200,
   },
   categoryCounter: {
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.contentMuted,
     minWidth: '32px',
     textAlign: 'center' as const,
@@ -454,8 +454,8 @@ const styles = {
     whiteSpace: 'nowrap' as const,
   },
   violationType: {
-    fontWeight: typography.heading.fontWeight,
-    fontSize: typography.heading.fontSize,
+    fontWeight: typography.h3.fontWeight,
+    fontSize: typography.h3.fontSize,
   },
   message: {
     color: colors.content,
@@ -468,7 +468,7 @@ const styles = {
     fontFamily: 'monospace',
   },
   explanation: {
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.contentMuted,
     marginTop: spacing.s200,
     lineHeight: 1.4,
@@ -481,7 +481,7 @@ const styles = {
     padding: '32px 0',
   },
   retryLink: {
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.accent,
     cursor: 'pointer',
     marginTop: spacing.s200,
@@ -506,7 +506,7 @@ const styles = {
     display: 'block',
   },
   previewPlaceholder: {
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.contentMuted,
     padding: spacing.s300,
   },

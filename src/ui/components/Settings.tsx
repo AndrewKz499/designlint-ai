@@ -90,9 +90,9 @@ export function Settings({ onBack }: Props) {
       </div>
 
       <div style={{
-        fontWeight: typography.heading.fontWeight,
-        fontSize: typography.heading.fontSize,
-        lineHeight: typography.heading.lineHeight,
+        fontWeight: typography.h3.fontWeight,
+        fontSize: typography.h3.fontSize,
+        lineHeight: typography.h3.lineHeight,
         color: colors.content,
         marginBottom: spacing.s400,
       }}>
@@ -189,7 +189,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing.s200,
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     color: colors.content,
     cursor: 'pointer',
   } as React.CSSProperties,
@@ -214,11 +214,11 @@ const styles = {
   aboutTitle: {
     fontWeight: 600,
     color: colors.content,
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
   } as React.CSSProperties,
   aboutDescription: {
     color: colors.contentMuted,
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     lineHeight: 1.4,
   } as React.CSSProperties,
   aboutVersion: {
@@ -227,7 +227,7 @@ const styles = {
   } as React.CSSProperties,
   aboutLink: {
     color: colors.accent,
-    fontSize: typography.body.fontSize + 'px',
+    fontSize: typography.body.fontSize,
     textDecoration: 'none',
   } as React.CSSProperties,
 };

@@ -301,11 +301,11 @@ export function App() {
       {!scanErrorCode && status === 'done' && detection !== null && (
         <>
           <div style={{
-            fontFamily: typography.heading.fontFamily,
-            fontWeight: typography.heading.fontWeight,
-            fontSize: typography.heading.fontSize,
-            lineHeight: typography.heading.lineHeight,
-            letterSpacing: typography.heading.letterSpacing,
+            fontFamily: typography.h3.fontFamily,
+            fontWeight: typography.h3.fontWeight,
+            fontSize: typography.h3.fontSize,
+            lineHeight: typography.h3.lineHeight,
+            letterSpacing: typography.h3.letterSpacing,
             color: colors.content,
             marginBottom: spacing.s200,
           }}>
