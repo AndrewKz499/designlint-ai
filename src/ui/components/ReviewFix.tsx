@@ -297,7 +297,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
     <div style={styles.root}>
       <Header onSettingsClick={onSettingsClick} />
       {/* Кнопка возврата */}
-      <div style={{ color: colors.accent, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>{UI.reviewBack}</div>
+      <div style={{ color: colors.contentMuted, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>{UI.reviewBack}</div>
 
       {/* Навигация по категории */}
       <div style={styles.categoryNav}>
@@ -404,9 +404,9 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
 
 const styles = {
   root: {
-    padding: '16px',
+    padding: spacing.s400,
     fontFamily: typography.body.fontFamily,
-    fontSize: '13px',
+    fontSize: typography.body.fontSize,
     color: colors.content,
     display: 'flex',
     flexDirection: 'column' as const,
@@ -439,16 +439,16 @@ const styles = {
   cardTop: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: spacing.s200,
   },
   dot: {
     flexShrink: 0,
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
+    width: spacing.s200,
+    height: spacing.s200,
+    borderRadius: 9999,
   },
   nodeName: {
-    fontWeight: 600,
+    fontWeight: typography.bodyBold.fontWeight,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
@@ -458,27 +458,23 @@ const styles = {
     fontSize: typography.h3.fontSize,
   },
   message: {
-    color: colors.content,
-    lineHeight: 1.4,
-    fontSize: '12px',
+    color: colors.contentMuted,
+    fontFamily: typography.caption.fontFamily,
+    fontSize: typography.caption.fontSize,
+    fontWeight: typography.caption.fontWeight,
+    lineHeight: typography.caption.lineHeight,
   },
   currentValue: {
     color: colors.contentMuted,
-    fontSize: '12px',
-    fontFamily: 'monospace',
+    fontFamily: typography.caption.fontFamily,
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
   },
   explanation: {
     fontSize: typography.body.fontSize,
     color: colors.contentMuted,
     marginTop: spacing.s200,
-    lineHeight: 1.4,
-  },
-  doneMsg: {
-    textAlign: 'center' as const,
-    color: '#22C55E',
-    fontWeight: 600,
-    fontSize: '14px',
-    padding: '32px 0',
+    lineHeight: typography.body.lineHeight,
   },
   retryLink: {
     fontSize: typography.body.fontSize,

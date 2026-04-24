@@ -309,10 +309,10 @@ export function App() {
             color: colors.content,
             marginBottom: spacing.s200,
           }}>
-            {UI.dashErrorsTitle(filteredViolations.length)}
+            {UI.dashAreasTitle}
           </div>
           {result && (
-            <div style={{ marginBottom: spacing.s300 }}>
+            <div style={{ marginBottom: spacing.s400 }}>
               <Tag>{UI.dashContextBadge(result.scopeLabel, result.totalNodesScanned)}</Tag>
             </div>
           )}
@@ -345,7 +345,6 @@ export function App() {
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
                         padding: `${spacing.s200}px 0`,
                       }}>
                         <Checkbox
@@ -355,12 +354,11 @@ export function App() {
                             if (checked) { next.add(cat); } else { next.delete(cat); }
                             setSelectedCategories(next);
                           }}
-                          label={CATEGORY_META[cat].emoji + ' ' + CATEGORY_META[cat].label}
+                          label={CATEGORY_META[cat].label + ': ' + filteredCount}
                         />
-                        <strong style={{ color: colors.content, fontSize: typography.body.fontSize }}>{filteredCount}</strong>
                       </div>
                       {/* Список нарушений внутри категории */}
-                      <div style={{ paddingLeft: 28 }}>
+                      <div style={{ paddingLeft: spacing.s400 }}>
                         {items.map((v, idx) => (
                           <div
                             key={v.id}
@@ -374,11 +372,11 @@ export function App() {
                             onClick={() => sendMessage({ type: 'navigate-to-node', data: { nodeId: v.nodeId, pageId: v.pageId } })}
                             title="Перейти к элементу"
                           >
-                            <div>{VIOLATION_TITLE[v.type]}</div>
-                            <div style={{ color: colors.contentMuted, fontSize: 13 }}>
-                              {v.nodeName}
-                              {v.suggestedToken !== null && <span style={{ color: colors.accent }}> → {v.suggestedToken}</span>}
-                            </div>
+                            <span style={{ color: colors.contentMuted, marginRight: spacing.s200 }}>{idx + 1}</span>
+                            <span>{VIOLATION_TITLE[v.type]} {v.nodeName}</span>
+                            {v.suggestedToken !== null && (
+                              <span style={{ color: colors.accent }}> → {v.suggestedToken}</span>
+                            )}
                           </div>
                         ))}
                       </div>
