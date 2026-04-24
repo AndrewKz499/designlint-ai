@@ -34,7 +34,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
 
   const labelStyle: React.CSSProperties = {
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textDefault,
+    color: colors.content,
     marginBottom: spacing.s200,
     display: 'block',
   };
@@ -47,18 +47,18 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
     height: 40,
     padding: `0 ${spacing.s300}px 0 ${spacing.s400}px`,
     background: colors.bgDefault,
-    border: `${borders.stroke}px solid ${colors.borderDefault}`,
+    border: `${borders.stroke}px solid ${colors.border}`,
     borderRadius: radii.r200,
     cursor: 'pointer',
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textDefault,
+    color: colors.content,
     boxSizing: 'border-box',
   };
 
   const swatchStyle = (hex: string): React.CSSProperties => ({
     width: 16, height: 16, borderRadius: 3,
     background: hex, flexShrink: 0,
-    border: `${borders.stroke}px solid ${colors.borderDefault}`,
+    border: `${borders.stroke}px solid ${colors.border}`,
   });
 
   const valueStyle: React.CSSProperties = { flex: 1, textAlign: 'left' };
@@ -70,7 +70,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
     padding: '2px 6px',
     marginLeft: 'auto',
     background: colors.bgSecondary,
-    color: colors.textMuted,
+    color: colors.contentMuted,
     borderRadius: radii.r100,
     flexShrink: 0,
   };
@@ -82,7 +82,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
     right: 0,
     marginTop: -1,
     background: colors.bgDefault,
-    border: `${borders.stroke}px solid ${colors.borderDefault}`,
+    border: `${borders.stroke}px solid ${colors.border}`,
     borderTop: 'none',
     borderRadius: `0 0 ${radii.r200}px ${radii.r200}px`,
     zIndex: 100,
@@ -107,7 +107,7 @@ export function SelectField({ value, options, onChange, label, placeholder }: Pr
         <span style={valueStyle}>{selected?.label || placeholder || '—'}</span>
         {selected?.badge && <span style={badgeStyle}>{selected.badge}</span>}
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M3 4.5L6 7.5L9 4.5" stroke={colors.textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 4.5L6 7.5L9 4.5" stroke={colors.contentMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
       {open && (

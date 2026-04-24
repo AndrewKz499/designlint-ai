@@ -3,32 +3,31 @@
 // Используются в inline-стилях React-компонентов (не CSS-переменные).
 
 export const colors = {
-  // text
-  textDefault: '#1e1e1e',
-  textNeutral: '#303030',
-  textBody: '#383838',
-  textMuted: '#797979',
-  textBlack: '#000000',
-  textBrandOnBrand: '#f5f5f5',
+  // Backgrounds
+  bg: '#F4F5F5',
+  bgDefault: '#FFFFFF',
+  bgSecondary: '#D9D9D9',
 
-  // background
-  bgDefault: '#ffffff',
-  bgBrandDefault: '#2c2c2c',
-  bgBrandHover: '#1e1e1e',
-  bgSecondary: '#f3f3f3',
+  // Content (text, icons)
+  content: '#33332D',
+  contentMuted: '#B3B3B3',
+  contentOnDark: '#F5F5F5',
 
-  // border
-  borderBrand: '#2c2c2c',
-  borderDefault: '#d9d9d9',
-  borderCheckbox: '#000000',
+  // Accent
+  accent: '#002BFF',
 
-  // icon
-  iconDefault: '#1e1e1e',
-  iconBrandOnBrand: '#f5f5f5',
+  // Tags
+  tagBg: '#4A4A4A',
+  tagContent: '#FFFFFF',
 
-  // accent
-  accentBlue: '#002bff',
-};
+  // Borders
+  border: '#D9D9D9',
+  borderMuted: '#B3B3B3',
+
+  // Error
+  errorBorder: '#D50000',
+  errorFill: '#FFCDCD',
+} as const;
 
 export const typography = {
   titlePage: {

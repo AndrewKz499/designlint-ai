@@ -17,7 +17,7 @@ const closeIcon = (onRemove: () => void) => (
   >
     <path
       d="M4 4L12 12M12 4L4 12"
-      stroke={colors.iconBrandOnBrand}
+      stroke={colors.contentOnDark}
       strokeWidth="1.5"
       strokeLinecap="round"
     />
@@ -29,10 +29,10 @@ export function Tag({ children, onRemove }: TagProps): React.ReactElement {
     display: 'inline-flex',
     alignItems: 'center',
     gap: spacing.s200,
-    background: colors.bgBrandHover,
+    background: colors.content,
     borderRadius: radii.r200,
     padding: spacing.s200,
-    color: colors.textBrandOnBrand,
+    color: colors.contentOnDark,
     fontSize: typography.body.fontSize,
     fontWeight: typography.body.fontWeight,
     fontFamily: typography.body.fontFamily,

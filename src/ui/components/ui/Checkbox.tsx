@@ -12,7 +12,7 @@ const checkmark = (
   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
     <path
       d="M1.5 5L4 7.5L8.5 2.5"
-      stroke={colors.iconBrandOnBrand}
+      stroke={colors.contentOnDark}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -35,8 +35,8 @@ export function Checkbox({
     alignItems: 'center',
     justifyContent: 'center',
     ...(checked
-      ? { background: colors.bgBrandDefault, border: 'none' }
-      : { background: colors.bgDefault, border: `1px solid ${colors.borderCheckbox}` }),
+      ? { background: colors.content, border: 'none' }
+      : { background: colors.bgDefault, border: `1px solid ${colors.content}` }),
   };
 
   const wrapperStyle: React.CSSProperties = {
@@ -52,7 +52,7 @@ export function Checkbox({
     fontSize: typography.body.fontSize,
     fontWeight: typography.body.fontWeight,
     lineHeight: typography.body.lineHeight,
-    color: colors.textDefault,
+    color: colors.content,
   };
 
   const handleClick = () => {

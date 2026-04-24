@@ -83,7 +83,7 @@ export function Settings({ onBack }: Props) {
   return (
     <div style={{ padding: spacing.s400, fontFamily: typography.body.fontFamily }}>
       <div
-        style={{ color: colors.accentBlue, cursor: 'pointer', marginBottom: spacing.s300, fontSize: typography.body.fontSize }}
+        style={{ color: colors.accent, cursor: 'pointer', marginBottom: spacing.s300, fontSize: typography.body.fontSize }}
         onClick={onBack}
       >
         ← Назад
@@ -93,7 +93,7 @@ export function Settings({ onBack }: Props) {
         fontWeight: typography.heading.fontWeight,
         fontSize: typography.heading.fontSize,
         lineHeight: typography.heading.lineHeight,
-        color: colors.textDefault,
+        color: colors.content,
         marginBottom: spacing.s400,
       }}>
         Настройки
@@ -112,14 +112,14 @@ export function Settings({ onBack }: Props) {
         <div style={styles.toggleHint}>{UI.aiToggleHint}</div>
       </div>
 
-      <div style={{ marginBottom: spacing.s200, fontSize: 14, color: colors.textBody }}>
+      <div style={{ marginBottom: spacing.s200, fontSize: 14, color: colors.content }}>
         Google API Key
       </div>
-      <div style={{ marginBottom: spacing.s200, fontSize: 13, color: colors.textMuted }}>
+      <div style={{ marginBottom: spacing.s200, fontSize: 13, color: colors.contentMuted }}>
         {hasExisting ? 'Ключ сохранён. Введите новый для замены.' : 'Введите ключ для AI-функций (Исправить все).'}
       </div>
-      <div style={{ marginBottom: spacing.s200, fontSize: 12, color: colors.accentBlue }}>
-        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: colors.accentBlue }}>
+      <div style={{ marginBottom: spacing.s200, fontSize: 12, color: colors.accent }}>
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: colors.accent }}>
           Получить ключ на aistudio.google.com
         </a>
       </div>
@@ -133,7 +133,7 @@ export function Settings({ onBack }: Props) {
           padding: spacing.s300,
           fontSize: typography.body.fontSize,
           fontFamily: typography.body.fontFamily,
-          border: '1px solid ' + colors.borderDefault,
+          border: '1px solid ' + colors.border,
           borderRadius: radii.r200,
           marginBottom: spacing.s300,
           boxSizing: 'border-box',
@@ -190,7 +190,7 @@ const styles = {
     alignItems: 'center',
     gap: spacing.s200,
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textDefault,
+    color: colors.content,
     cursor: 'pointer',
   } as React.CSSProperties,
   toggleCheckbox: {
@@ -200,33 +200,33 @@ const styles = {
   } as React.CSSProperties,
   toggleHint: {
     fontSize: '12px',
-    color: colors.textMuted,
+    color: colors.contentMuted,
     lineHeight: 1.4,
   } as React.CSSProperties,
   aboutBlock: {
     marginTop: spacing.s400 * 2,
     paddingTop: spacing.s400,
-    borderTop: `${borders.stroke}px solid ${colors.borderDefault}`,
+    borderTop: `${borders.stroke}px solid ${colors.border}`,
     display: 'flex',
     flexDirection: 'column' as const,
     gap: spacing.s200,
   } as React.CSSProperties,
   aboutTitle: {
     fontWeight: 600,
-    color: colors.textDefault,
+    color: colors.content,
     fontSize: typography.body.fontSize + 'px',
   } as React.CSSProperties,
   aboutDescription: {
-    color: colors.textMuted,
+    color: colors.contentMuted,
     fontSize: typography.body.fontSize + 'px',
     lineHeight: 1.4,
   } as React.CSSProperties,
   aboutVersion: {
-    color: colors.textMuted,
+    color: colors.contentMuted,
     fontSize: '12px',
   } as React.CSSProperties,
   aboutLink: {
-    color: colors.accentBlue,
+    color: colors.accent,
     fontSize: typography.body.fontSize + 'px',
     textDecoration: 'none',
   } as React.CSSProperties,

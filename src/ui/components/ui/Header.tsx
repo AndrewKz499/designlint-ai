@@ -27,7 +27,7 @@ export function Header({ onSettingsClick }: HeaderProps): React.ReactElement {
     fontSize: '32px',
     lineHeight: 1.2,
     letterSpacing: typography.titlePage.letterSpacing,
-    color: colors.textDefault,
+    color: colors.content,
     margin: 0,
   };
 

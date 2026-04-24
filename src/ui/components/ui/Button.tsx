@@ -26,20 +26,20 @@ const base: React.CSSProperties = {
 
 const variantStyles: Record<'primary' | 'secondary', React.CSSProperties> = {
   primary: {
-    background: colors.bgBrandDefault,
-    border: `1px solid ${colors.borderBrand}`,
-    color: colors.textBrandOnBrand,
+    background: colors.content,
+    border: `1px solid ${colors.content}`,
+    color: colors.contentOnDark,
   },
   secondary: {
     background: colors.bgSecondary,
     border: 'none',
-    color: colors.textNeutral,
+    color: colors.content,
   },
 };
 
 const disabledStyles: React.CSSProperties = {
   background: colors.bgSecondary,
-  color: colors.textMuted,
+  color: colors.contentMuted,
   cursor: 'not-allowed',
 };
 

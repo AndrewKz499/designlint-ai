@@ -37,11 +37,11 @@ const styles = {
     fontFamily: typography.heading.fontFamily,
     fontSize: typography.heading.fontSize + 'px',
     fontWeight: typography.heading.fontWeight,
-    color: colors.textDefault,
+    color: colors.content,
   } as React.CSSProperties,
   description: {
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textMuted,
+    color: colors.contentMuted,
     lineHeight: 1.4,
   } as React.CSSProperties,
 };

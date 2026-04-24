@@ -297,7 +297,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
     <div style={styles.root}>
       <Header onSettingsClick={onSettingsClick} />
       {/* Кнопка возврата */}
-      <div style={{ color: colors.accentBlue, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>{UI.reviewBack}</div>
+      <div style={{ color: colors.accent, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>{UI.reviewBack}</div>
 
       {/* Навигация по категории */}
       <div style={styles.categoryNav}>
@@ -407,7 +407,7 @@ const styles = {
     padding: '16px',
     fontFamily: typography.body.fontFamily,
     fontSize: '13px',
-    color: colors.textDefault,
+    color: colors.content,
     display: 'flex',
     flexDirection: 'column' as const,
     gap: spacing.s300,
@@ -421,12 +421,12 @@ const styles = {
   categoryLabel: {
     fontSize: typography.body.fontSize + 'px',
     fontWeight: typography.heading.fontWeight,
-    color: colors.textDefault,
+    color: colors.content,
     marginRight: spacing.s200,
   },
   categoryCounter: {
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textMuted,
+    color: colors.contentMuted,
     minWidth: '32px',
     textAlign: 'center' as const,
   },
@@ -458,18 +458,18 @@ const styles = {
     fontSize: typography.heading.fontSize,
   },
   message: {
-    color: colors.textBody,
+    color: colors.content,
     lineHeight: 1.4,
     fontSize: '12px',
   },
   currentValue: {
-    color: colors.textMuted,
+    color: colors.contentMuted,
     fontSize: '12px',
     fontFamily: 'monospace',
   },
   explanation: {
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textMuted,
+    color: colors.contentMuted,
     marginTop: spacing.s200,
     lineHeight: 1.4,
   },
@@ -482,7 +482,7 @@ const styles = {
   },
   retryLink: {
     fontSize: typography.body.fontSize + 'px',
-    color: colors.accentBlue,
+    color: colors.accent,
     cursor: 'pointer',
     marginTop: spacing.s200,
     textDecoration: 'underline',
@@ -507,7 +507,7 @@ const styles = {
   },
   previewPlaceholder: {
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textMuted,
+    color: colors.contentMuted,
     padding: spacing.s300,
   },
 } satisfies Record<string, React.CSSProperties>;

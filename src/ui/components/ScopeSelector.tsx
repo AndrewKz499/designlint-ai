@@ -40,7 +40,7 @@ export function ScopeSelector({ value, onChange }: Props) {
 const styles = {
   label: {
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textMuted,
+    color: colors.contentMuted,
     marginBottom: spacing.s200,
   } as React.CSSProperties,
   group: {
@@ -48,13 +48,13 @@ const styles = {
     width: '100%',
     borderRadius: radii.r200,
     overflow: 'hidden',
-    border: `${borders.stroke}px solid ${colors.borderDefault}`,
+    border: `${borders.stroke}px solid ${colors.border}`,
   } as React.CSSProperties,
   btnIdle: {
     flex: 1,
     padding: `${spacing.s200}px`,
     background: 'transparent',
-    color: colors.textMuted,
+    color: colors.contentMuted,
     border: 'none',
     fontFamily: typography.body.fontFamily,
     fontSize: '12px',
@@ -63,8 +63,8 @@ const styles = {
   btnActive: {
     flex: 1,
     padding: `${spacing.s200}px`,
-    background: colors.bgBrandDefault,
-    color: colors.textBrandOnBrand,
+    background: colors.content,
+    color: colors.contentOnDark,
     border: 'none',
     fontFamily: typography.body.fontFamily,
     fontSize: '12px',

@@ -58,7 +58,7 @@ const styles = {
     fontFamily: typography.heading.fontFamily,
     fontSize: typography.heading.fontSize + 'px',
     fontWeight: typography.heading.fontWeight,
-    color: colors.textDefault,
+    color: colors.content,
   } as React.CSSProperties,
   metrics: {
     display: 'flex',
@@ -67,6 +67,6 @@ const styles = {
   } as React.CSSProperties,
   metricRow: {
     fontSize: typography.body.fontSize + 'px',
-    color: colors.textDefault,
+    color: colors.content,
   } as React.CSSProperties,
 };

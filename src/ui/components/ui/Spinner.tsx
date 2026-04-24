@@ -6,7 +6,7 @@ type Props = {
 };
 
 export function Spinner({ size = 16, color }: Props) {
-  const ringColor = color || colors.textMuted;
+  const ringColor = color || colors.contentMuted;
   const borderWidth = Math.max(2, Math.round(size / 8));
 
   const style: React.CSSProperties = {

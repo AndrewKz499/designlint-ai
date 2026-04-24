@@ -306,7 +306,7 @@ export function App() {
             fontSize: typography.heading.fontSize,
             lineHeight: typography.heading.lineHeight,
             letterSpacing: typography.heading.letterSpacing,
-            color: colors.textDefault,
+            color: colors.content,
             marginBottom: spacing.s200,
           }}>
             {UI.dashErrorsTitle(filteredViolations.length)}
@@ -357,7 +357,7 @@ export function App() {
                           }}
                           label={CATEGORY_META[cat].emoji + ' ' + CATEGORY_META[cat].label}
                         />
-                        <strong style={{ color: colors.textDefault, fontSize: typography.body.fontSize }}>{filteredCount}</strong>
+                        <strong style={{ color: colors.content, fontSize: typography.body.fontSize }}>{filteredCount}</strong>
                       </div>
                       {/* Список нарушений внутри категории */}
                       <div style={{ paddingLeft: 28 }}>
@@ -367,17 +367,17 @@ export function App() {
                             style={{
                               padding: `${spacing.s200}px 0`,
                               fontSize: 14,
-                              color: isSelected ? colors.textBody : colors.textMuted,
+                              color: isSelected ? colors.content : colors.contentMuted,
                               cursor: 'pointer',
-                              borderBottom: idx < items.length - 1 ? `1px solid ${colors.borderDefault}` : 'none',
+                              borderBottom: idx < items.length - 1 ? `1px solid ${colors.border}` : 'none',
                             }}
                             onClick={() => sendMessage({ type: 'navigate-to-node', data: { nodeId: v.nodeId, pageId: v.pageId } })}
                             title="Перейти к элементу"
                           >
                             <div>{VIOLATION_TITLE[v.type]}</div>
-                            <div style={{ color: colors.textMuted, fontSize: 13 }}>
+                            <div style={{ color: colors.contentMuted, fontSize: 13 }}>
                               {v.nodeName}
-                              {v.suggestedToken !== null && <span style={{ color: colors.accentBlue }}> → {v.suggestedToken}</span>}
+                              {v.suggestedToken !== null && <span style={{ color: colors.accent }}> → {v.suggestedToken}</span>}
                             </div>
                           </div>
                         ))}
@@ -436,11 +436,11 @@ const styles = {
     padding: spacing.s400,
     fontFamily: typography.body.fontFamily,
     fontSize: '13px',
-    color: colors.textDefault,
+    color: colors.content,
   },
   hint: {
     margin: `0 0 ${spacing.s400}px`,
-    color: colors.textMuted,
+    color: colors.contentMuted,
   },
   scanningRow: {
     display: 'flex',
