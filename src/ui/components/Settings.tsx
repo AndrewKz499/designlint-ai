@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { PluginMessage } from '../../shared/types';
 import { Button } from './ui/Button';
+import { Checkbox } from './ui/Checkbox';
 import { colors, typography, spacing, radii, borders } from '../tokens';
 import { callGemini, clearCachedKey } from '../aiClient';
 import { UI } from '../../shared/strings';
@@ -100,15 +101,11 @@ export function Settings({ onBack }: Props) {
       </div>
 
       <div style={styles.toggleRow}>
-        <label style={styles.toggleLabel}>
-          <input
-            type="checkbox"
-            checked={aiEnabled}
-            onChange={(e) => handleToggleAi(e.target.checked)}
-            style={styles.toggleCheckbox}
-          />
-          <span>{UI.aiToggleLabel}</span>
-        </label>
+        <Checkbox
+          checked={aiEnabled}
+          onChange={(checked) => handleToggleAi(checked)}
+          label={UI.aiToggleLabel}
+        />
         <div style={styles.toggleHint}>{UI.aiToggleHint}</div>
       </div>
 
@@ -184,19 +181,6 @@ const styles = {
     flexDirection: 'column' as const,
     gap: spacing.s200,
     marginBottom: spacing.s400,
-  } as React.CSSProperties,
-  toggleLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.s200,
-    fontSize: typography.body.fontSize,
-    color: colors.content,
-    cursor: 'pointer',
-  } as React.CSSProperties,
-  toggleCheckbox: {
-    width: 16,
-    height: 16,
-    cursor: 'pointer',
   } as React.CSSProperties,
   toggleHint: {
     fontSize: '12px',

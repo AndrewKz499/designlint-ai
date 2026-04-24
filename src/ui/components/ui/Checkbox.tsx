@@ -8,25 +8,22 @@ interface CheckboxProps {
   disabled?: boolean;
 }
 
-const checkmark = (
-  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-    <path
-      d="M1.5 5L4 7.5L8.5 2.5"
-      stroke={colors.contentOnDark}
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+function checkmark(strokeColor: string): React.ReactElement {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+      <path
+        d="M1.5 5L4 7.5L8.5 2.5"
+        stroke={strokeColor}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
-export function Checkbox({
-  checked,
-  onChange,
-  label,
-  disabled = false,
-}: CheckboxProps): React.ReactElement {
-  const boxStyle: React.CSSProperties = {
+function boxStyle(checked: boolean, disabled: boolean): React.CSSProperties {
+  const common: React.CSSProperties = {
     width: 16,
     height: 16,
     borderRadius: radii.r100,
@@ -34,17 +31,41 @@ export function Checkbox({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    ...(checked
-      ? { background: colors.content, border: 'none' }
-      : { background: colors.bgDefault, border: `1px solid ${colors.content}` }),
+    transition: 'background 0.15s ease, border-color 0.15s ease',
   };
+  if (disabled) {
+    return {
+      ...common,
+      background: colors.bgSecondary,
+      border: '1px solid ' + colors.borderMuted,
+    };
+  }
+  if (checked) {
+    return {
+      ...common,
+      background: colors.accent,
+      border: 'none',
+    };
+  }
+  return {
+    ...common,
+    background: colors.bgDefault,
+    border: '1px solid ' + colors.borderMuted,
+  };
+}
 
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  disabled = false,
+}: CheckboxProps): React.ReactElement {
   const wrapperStyle: React.CSSProperties = {
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.s300,
     cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
   };
 
   const labelStyle: React.CSSProperties = {
@@ -52,21 +73,36 @@ export function Checkbox({
     fontSize: typography.body.fontSize,
     fontWeight: typography.body.fontWeight,
     lineHeight: typography.body.lineHeight,
-    color: colors.content,
+    color: disabled ? colors.contentMuted : colors.content,
   };
 
-  const handleClick = () => {
+  const toggle = () => {
     if (!disabled) onChange(!checked);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return;
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      onChange(!checked);
+    }
+  };
+
+  const tickColor = disabled ? colors.contentMuted : colors.contentOnDark;
+
   return (
-    <div style={wrapperStyle} onClick={handleClick}>
-      <div style={boxStyle}>
-        {checked && checkmark}
+    <div
+      style={wrapperStyle}
+      onClick={toggle}
+      onKeyDown={handleKeyDown}
+      role="checkbox"
+      aria-checked={checked}
+      tabIndex={disabled ? -1 : 0}
+    >
+      <div style={boxStyle(checked, disabled)}>
+        {checked && checkmark(tickColor)}
       </div>
-      {label !== undefined && (
-        <span style={labelStyle}>{label}</span>
-      )}
+      {label !== undefined && <span style={labelStyle}>{label}</span>}
     </div>
   );
 }
