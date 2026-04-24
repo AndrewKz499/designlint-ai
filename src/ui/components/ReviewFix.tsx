@@ -297,7 +297,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
     <div style={styles.root}>
       <Header onSettingsClick={onSettingsClick} />
       {/* Кнопка возврата */}
-      <div style={{ color: colors.contentMuted, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>{UI.reviewBack}</div>
+      <div style={{ color: colors.content, cursor: 'pointer', fontSize: typography.body.fontSize }} onClick={onBack}>{UI.reviewBack}</div>
 
       {/* Навигация по категории */}
       <div style={styles.categoryNav}>

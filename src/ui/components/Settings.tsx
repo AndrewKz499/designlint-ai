@@ -85,7 +85,7 @@ export function Settings({ onBack }: Props) {
   return (
     <div style={{ padding: spacing.s400, fontFamily: typography.body.fontFamily }}>
       <div
-        style={{ color: colors.accent, cursor: 'pointer', marginBottom: spacing.s300, fontSize: typography.body.fontSize }}
+        style={{ color: colors.content, cursor: 'pointer', marginBottom: spacing.s300, fontSize: typography.body.fontSize }}
         onClick={onBack}
       >
         ← Назад
