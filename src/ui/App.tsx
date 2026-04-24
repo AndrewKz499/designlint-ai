@@ -287,12 +287,12 @@ export function App() {
       {!scanErrorCode && status === 'scanning' && (
         <>
           <div style={styles.scanningRow}>
-            <Spinner size={16} />
-            <p style={styles.hint}>
+            <p style={styles.scanningText}>
               {progress && progress.current > 0
                 ? UI.scanningWithCount(progress.current)
                 : UI.scanningIdle}
             </p>
+            <Spinner size={24} />
           </div>
           <Button disabled>Сканировать файл</Button>
         </>
@@ -444,8 +444,20 @@ const styles = {
   },
   scanningRow: {
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.s200,
+    width: '100%',
     marginTop: spacing.s300,
+    marginBottom: spacing.s400,
+  },
+  scanningText: {
+    fontFamily: typography.h3.fontFamily,
+    fontSize: typography.h3.fontSize,
+    fontWeight: typography.h3.fontWeight,
+    lineHeight: typography.h3.lineHeight,
+    color: colors.content,
+    margin: 0,
   },
 } satisfies Record<string, React.CSSProperties>;

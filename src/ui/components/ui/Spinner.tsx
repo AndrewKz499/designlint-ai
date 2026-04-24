@@ -1,23 +1,24 @@
 import { colors } from '../../tokens';
 
 type Props = {
-  size?: number;    // диаметр в px, по умолчанию 16
-  color?: string;   // цвет кольца, по умолчанию textMuted
+  size?: number;   // диаметр в px, default 20
 };
 
-export function Spinner({ size = 16, color }: Props) {
-  const ringColor = color || colors.contentMuted;
+export function Spinner({ size = 20 }: Props) {
   const borderWidth = Math.max(2, Math.round(size / 8));
 
   const style: React.CSSProperties = {
     display: 'inline-block',
     width: size,
     height: size,
-    border: `${borderWidth}px solid ${ringColor}33`,
-    borderTopColor: ringColor,
-    borderRadius: '50%',
+    borderRadius: 9999,
+    borderWidth: borderWidth,
+    borderStyle: 'solid',
+    borderColor: colors.bgSecondary,
+    borderTopColor: colors.accent,
     animation: 'designlint-spin 0.8s linear infinite',
     verticalAlign: 'middle',
+    boxSizing: 'border-box',
   };
 
   return (
@@ -27,7 +28,7 @@ export function Spinner({ size = 16, color }: Props) {
           to { transform: rotate(360deg); }
         }
       `}</style>
-      <span style={style} aria-label="Загрузка" />
+      <span style={style} role="status" aria-label="Загрузка" />
     </>
   );
 }

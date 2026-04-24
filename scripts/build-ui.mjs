@@ -8,6 +8,10 @@ const html = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <title>DesignLint AI</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #F4F5F5; }
+    #root { background: inherit; min-height: 100%; }
+  </style>
 </head>
 <body>
   <div id="root"></div>
