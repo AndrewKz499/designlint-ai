@@ -187,18 +187,10 @@ export interface DetectionResult {
 
 /** Метрики для финального экрана «Готово» */
 export interface ReportMetrics {
-  /** Health score на момент старта аудита (до первого Fix) */
-  scoreBefore: number;
-  /** Health score на момент показа отчёта */
-  scoreAfter: number;
   /** Количество нарушений, исправленных через Fix (не Skip/Ignore) */
   fixedCount: number;
   /** Количество нарушений на старте аудита */
   totalBefore: number;
-  /** Количество нарушений, оставшихся в файле */
-  totalAfter: number;
-  /** Длительность сессии в миллисекундах (от первого взаимодействия до финала) */
-  durationMs: number;
   /** Имя области, где работали (из ScanResult.scopeLabel) */
   scopeLabel: string;
 }

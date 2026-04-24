@@ -12,9 +12,6 @@ type Props = {
 
 export function ReportView({ metrics, onCheckAgain, onClearMarkers }: Props) {
   const [cleared, setCleared] = useState(false);
-  const durationSec = Math.floor(metrics.durationMs / 1000);
-  const min = Math.floor(durationSec / 60);
-  const sec = durationSec % 60;
 
   return (
     <div style={styles.root}>
@@ -23,9 +20,6 @@ export function ReportView({ metrics, onCheckAgain, onClearMarkers }: Props) {
       <div style={styles.metrics}>
         <div style={styles.metricRow}>
           {UI.reportFixedLabel(metrics.fixedCount, metrics.totalBefore)}
-        </div>
-        <div style={styles.metricRow}>
-          {UI.reportDurationLabel(min, sec)}
         </div>
         <div style={styles.metricRow}>
           {UI.reportScopeLabel(metrics.scopeLabel)}

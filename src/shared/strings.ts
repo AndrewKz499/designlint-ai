@@ -105,8 +105,6 @@ export const UI = {
 
   reportTitle:        'Готово',
   reportFixedLabel:   (fixed: number, total: number) => `Исправлено ${fixed} из ${total}`,
-  reportDurationLabel: (min: number, sec: number) =>
-    min > 0 ? `Время: ${min} мин ${sec} с` : `Время: ${sec} с`,
   reportScopeLabel:   (label: string) => `Область: ${label}`,
   reportCheckAgain:   'Проверить ещё',
   reportClearMarkers: 'Убрать маркеры с холста',

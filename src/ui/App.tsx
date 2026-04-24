@@ -70,8 +70,7 @@ export function App() {
   const [detection, setDetection] = useState<DetectionResult | null>(null);
   const [scope, setScope] = useState<ScanScope>('selection');
   const [selectedCategories, setSelectedCategories] = useState<Set<Category>>(new Set());
-  const [scoreBefore, setScoreBefore] = useState<number | null>(null);
-  const [sessionStartMs, setSessionStartMs] = useState<number | null>(null);
+  const [totalBefore, setTotalBefore] = useState<number | null>(null);
   const [fixedCount, setFixedCount] = useState<number>(0);
   const [aiEnabled, setAiEnabled] = useState<boolean>(true);
   const [scanErrorCode, setScanErrorCode] = useState<'no-selection' | 'no-tokens' | 'no-ai-key' | null>(null);
@@ -100,9 +99,8 @@ export function App() {
       } else if (msg.type === 'detection-complete') {
         setDetection(msg.data);
         // Запоминаем исходные метрики только при ПЕРВОМ детекшене в сессии
-        if (scoreBefore === null) {
-          setScoreBefore(msg.data.healthScore);
-          setSessionStartMs(Date.now());
+        if (totalBefore === null) {
+          setTotalBefore(msg.data.violations.length);
           setFixedCount(0);
         }
       } else if (msg.type === 'ai-enabled-response') {
@@ -147,8 +145,7 @@ export function App() {
     setResult(null);
     setDetection(null);
     setProgress(null);
-    setScoreBefore(null);
-    setSessionStartMs(null);
+    setTotalBefore(null);
     setFixedCount(0);
   };
 
@@ -231,14 +228,8 @@ export function App() {
         onFixApplied={handleFixApplied}
         onSettingsClick={() => setCurrentView('settings')}
         metrics={{
-          scoreBefore: scoreBefore ?? (detection?.healthScore ?? 0),
-          scoreAfter: detection?.healthScore ?? 0,
           fixedCount,
-          totalBefore: scoreBefore !== null && detection
-            ? detection.violations.length + fixedCount
-            : (detection?.violations.length ?? 0),
-          totalAfter: detection?.violations.length ?? 0,
-          durationMs: sessionStartMs ? Date.now() - sessionStartMs : 0,
+          totalBefore: totalBefore ?? (detection?.violations.length ?? 0),
           scopeLabel: result?.scopeLabel ?? '',
         }}
         onCheckAgain={handleReset}
