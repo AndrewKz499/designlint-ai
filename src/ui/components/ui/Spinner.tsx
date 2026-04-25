@@ -1,4 +1,5 @@
 import { colors } from '../../tokens';
+import { UI } from '../../../shared/strings';
 
 type Props = {
   size?: number;   // диаметр в px, default 20
@@ -28,7 +29,7 @@ export function Spinner({ size = 20 }: Props) {
           to { transform: rotate(360deg); }
         }
       `}</style>
-      <span style={style} role="status" aria-label="Загрузка" />
+      <span style={style} role="status" aria-label={UI.spinnerLoading} />
     </>
   );
 }

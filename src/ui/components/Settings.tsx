@@ -51,9 +51,9 @@ export function Settings({ onBack }: Props) {
     setTestResult(null);
     try {
       const text = await callGemini([{ role: 'user', content: 'Ответь одним словом: работает.' }], undefined, 32);
-      setTestResult('✓ Ключ работает: ' + text.slice(0, 50));
+      setTestResult(UI.settingsKeyValid(text.slice(0, 50)));
     } catch (e) {
-      setTestResult('✗ Ошибка: ' + String(e).slice(0, 80));
+      setTestResult(UI.settingsKeyError(String(e).slice(0, 80)));
     } finally {
       setTesting(false);
     }
@@ -88,7 +88,7 @@ export function Settings({ onBack }: Props) {
         style={{ color: colors.content, cursor: 'pointer', marginBottom: spacing.s300, fontSize: typography.body.fontSize }}
         onClick={onBack}
       >
-        ← Назад
+        {UI.settingsBack}
       </div>
 
       <div style={{
@@ -98,7 +98,7 @@ export function Settings({ onBack }: Props) {
         color: colors.content,
         marginBottom: spacing.s400,
       }}>
-        Настройки
+        {UI.settingsTitle}
       </div>
 
       <div style={styles.toggleRow}>
@@ -114,11 +114,11 @@ export function Settings({ onBack }: Props) {
         Google API Key
       </div>
       <div style={{ marginBottom: spacing.s200, fontSize: 13, color: colors.contentMuted }}>
-        {hasExisting ? 'Ключ сохранён. Введите новый для замены.' : 'Введите ключ для AI-функций (Исправить все).'}
+        {hasExisting ? UI.settingsKeyHintExisting : UI.settingsKeyHintNew}
       </div>
       <div style={{ marginBottom: spacing.s200, fontSize: 12, color: colors.accent }}>
         <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: colors.accent }}>
-          Получить ключ на aistudio.google.com
+          {UI.settingsGetKey}
         </a>
       </div>
       <div style={{ marginBottom: spacing.s300 }}>
@@ -130,12 +130,12 @@ export function Settings({ onBack }: Props) {
         />
       </div>
       <Button onClick={handleSave} disabled={key.trim().length === 0}>
-        {saved ? 'Сохранено ✓' : 'Сохранить ключ'}
+        {saved ? UI.settingsKeySaved : UI.settingsSaveKey}
       </Button>
       {hasExisting && (
         <div style={{ marginTop: spacing.s300, display: 'flex', flexDirection: 'column', gap: spacing.s200 }}>
           <Button variant="secondary" onClick={handleTestKey} disabled={testing}>
-            {testing ? 'Проверяю...' : 'Проверить ключ'}
+            {testing ? UI.settingsKeyTesting : UI.settingsTestKey}
           </Button>
           {testResult && (
             <div style={{

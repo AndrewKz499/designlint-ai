@@ -121,4 +121,58 @@ export const UI = {
 
   settingsRemoveKey:  'Удалить ключ',
   settingsKeyRemoved: 'Ключ удалён',
+
+  // ─── App.tsx ─────────────────────────────────────────────────────────────
+  errorNoSelectionTitle:  'Нет выделения',
+  errorNoSelectionAction: 'Попробовать снова',
+  errorNoTokensTitle:     'Нет токенов дизайн-системы',
+  errorNoTokensAction:    'Понятно',
+  scanReady:              'Готов к сканированию',
+  scanFile:               'Сканировать файл',
+  navigateToNodeTitle:    'Перейти к элементу',
+  analyzingResults:       'Анализ результатов...',
+
+  // ─── Settings.tsx ────────────────────────────────────────────────────────
+  settingsKeyValid:       (text: string) => `✓ Ключ работает: ${text}`,
+  settingsKeyError:       (msg: string) => `✗ Ошибка: ${msg}`,
+  settingsBack:           '← Назад',
+  settingsTitle:          'Настройки',
+  settingsKeyHintExisting: 'Ключ сохранён. Введите новый для замены.',
+  settingsKeyHintNew:     'Введите ключ для AI-функций (Исправить все).',
+  settingsGetKey:         'Получить ключ на aistudio.google.com',
+  settingsKeySaved:       'Сохранено ✓',
+  settingsSaveKey:        'Сохранить ключ',
+  settingsKeyTesting:     'Проверяю...',
+  settingsTestKey:        'Проверить ключ',
+
+  // ─── Spinner.tsx ─────────────────────────────────────────────────────────
+  spinnerLoading:         'Загрузка',
+
+  // ─── ScanDesignSystem.tsx ────────────────────────────────────────────────
+  sdSourcesTitle:         'Источники дизайн-системы',
+  sdScanSelected:         'Сканировать выбранные',
+  sdSkip:                 'Пропустить',
+  sdScanningTitle:        'Сканирование дизайн-системы',
+  sdScanning:             'Сканирование...',
+  sdScanningWith:         (stage: string) => `Сканирование... ${stage}`,
+  sdScannedTitle:         'Дизайн-система просканирована',
+  sdColorTokensLabel:     'Цветовых токенов:',
+  sdTypographyTokensLabel: 'Текстовых токенов:',
+  sdRunAudit:             'Запустить аудит',
+  sdRescan:               'Пересканировать',
+
+  // ─── ReviewFix.tsx ───────────────────────────────────────────────────────
+  errorAiGeneric:         'Не удалось получить объяснение.',
+  errorAiInvalidKey:      'Неверный API-ключ. Проверьте настройки.',
+  errorAiRateLimit:       'Превышен лимит запросов. Попробуйте позже.',
+  errorAiUnavailable:     'Сервис временно недоступен.',
+  previewBuildError:      'Не удалось построить превью',
+  previewLoadError:       'Не удалось загрузить превью',
+  previewLoading:         'Загружаем превью…',
+  previewAlt:             'Превью ноды',
+  recommendationAi:       'Рекомендация AI',
+  aiKeyMissing:           'AI-ключ не указан',
+  openSettings:           'Открыть настройки',
+  thinkingExplanation:    'Думаю над объяснением...',
+  tryAgain:               'Попробовать ещё раз',
 };

@@ -175,10 +175,10 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
       })
       .catch(err => {
         const msg = String(err);
-        let friendly = 'Не удалось получить объяснение.';
-        if (msg.includes('401') || msg.includes('403')) friendly = 'Неверный API-ключ. Проверьте настройки.';
-        else if (msg.includes('429')) friendly = 'Превышен лимит запросов. Попробуйте позже.';
-        else if (msg.includes('503') || msg.includes('overloaded')) friendly = 'Сервис временно недоступен.';
+        let friendly = UI.errorAiGeneric;
+        if (msg.includes('401') || msg.includes('403')) friendly = UI.errorAiInvalidKey;
+        else if (msg.includes('429')) friendly = UI.errorAiRateLimit;
+        else if (msg.includes('503') || msg.includes('overloaded')) friendly = UI.errorAiUnavailable;
         setExplanation(friendly);
         setExplainError(true);
       })
@@ -204,7 +204,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
           afterCacheRef.current.set(msg.data.nodeId, msg.data.pngBase64);
         } else {
           setAfterBase64(null);
-          setAfterError(msg.data.error || 'Не удалось построить превью');
+          setAfterError(msg.data.error || UI.previewBuildError);
         }
         return;
       }
@@ -216,7 +216,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
         setPreviewError('');
       } else {
         setPreviewBase64(null);
-        setPreviewError(msg.data.error || 'Не удалось загрузить превью');
+        setPreviewError(msg.data.error || UI.previewLoadError);
       }
       setPreviewLoading(false);
     };
@@ -323,12 +323,12 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
           <div style={styles.currentValue}>{current.currentValue}</div>
           <div style={styles.previewBox}>
             {previewLoading && (
-              <div style={styles.previewPlaceholder}>Загружаем превью…</div>
+              <div style={styles.previewPlaceholder}>{UI.previewLoading}</div>
             )}
             {!previewLoading && previewBase64 && (
               <img
                 src={'data:image/png;base64,' + previewBase64}
-                alt="Превью ноды"
+                alt={UI.previewAlt}
                 style={styles.previewImg}
               />
             )}
@@ -338,7 +338,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
           </div>
           {current.candidates && current.candidates.length > 0 && (
             <SelectField
-              label="Рекомендация AI"
+              label={UI.recommendationAi}
               value={selectedTokenId || ''}
               options={current.candidates.map(function(c): SelectOption {
                 var isColor = c.value.indexOf('#') === 0;
@@ -350,22 +350,22 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
           )}
           {aiEnabled && !hasApiKey && (
             <ErrorCard
-              title="AI-ключ не указан"
+              title={UI.aiKeyMissing}
               description={UI.errNoAiKey}
-              actionLabel="Открыть настройки"
+              actionLabel={UI.openSettings}
               onAction={onSettingsClick ?? (() => {})}
             />
           )}
           {aiEnabled && hasApiKey && (
             <>
               {explaining && (
-                <div style={styles.explanation}>Думаю над объяснением...</div>
+                <div style={styles.explanation}>{UI.thinkingExplanation}</div>
               )}
               {!explaining && explanation && (
                 <div style={styles.explanation}>{explanation}</div>
               )}
               {explainError && !explaining && (
-                <div style={styles.retryLink} onClick={() => setSelectedTokenId(s => s)}>Попробовать ещё раз</div>
+                <div style={styles.retryLink} onClick={() => setSelectedTokenId(s => s)}>{UI.tryAgain}</div>
               )}
             </>
           )}

@@ -248,9 +248,9 @@ export function App() {
       {scanErrorCode === 'no-selection' && (
         <div style={{ marginTop: 'auto' }}>
           <ErrorCard
-            title="Нет выделения"
+            title={UI.errorNoSelectionTitle}
             description={UI.errNoSelection}
-            actionLabel="Попробовать снова"
+            actionLabel={UI.errorNoSelectionAction}
             onAction={() => setScanErrorCode(null)}
           />
         </div>
@@ -259,9 +259,9 @@ export function App() {
       {scanErrorCode === 'no-tokens' && (
         <div style={{ marginTop: 'auto' }}>
           <ErrorCard
-            title="Нет токенов дизайн-системы"
+            title={UI.errorNoTokensTitle}
             description={UI.errNoTokens}
-            actionLabel="Понятно"
+            actionLabel={UI.errorNoTokensAction}
             onAction={() => setScanErrorCode(null)}
           />
         </div>
@@ -269,11 +269,11 @@ export function App() {
 
       {!scanErrorCode && status === 'idle' && (
         <>
-          <p style={styles.hint}>Готов к сканированию</p>
+          <p style={styles.hint}>{UI.scanReady}</p>
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             <ScopeSelector value={scope} onChange={setScope} />
           </div>
-          <Button onClick={handleStartScan}>Сканировать файл</Button>
+          <Button onClick={handleStartScan}>{UI.scanFile}</Button>
         </>
       )}
 
@@ -287,7 +287,7 @@ export function App() {
             </p>
             <Spinner size={24} />
           </div>
-          <Button disabled>Сканировать файл</Button>
+          <Button disabled>{UI.scanFile}</Button>
         </>
       )}
 
@@ -363,7 +363,7 @@ export function App() {
                               borderBottom: idx < items.length - 1 ? `1px solid ${colors.border}` : 'none',
                             }}
                             onClick={() => sendMessage({ type: 'navigate-to-node', data: { nodeId: v.nodeId, pageId: v.pageId } })}
-                            title="Перейти к элементу"
+                            title={UI.navigateToNodeTitle}
                           >
                             <span style={{ color: colors.contentMuted, marginRight: spacing.s200 }}>{idx + 1}</span>
                             <span>{VIOLATION_TITLE[v.type]} {v.nodeName}</span>
@@ -411,7 +411,7 @@ export function App() {
 
       {/* Сканирование завершено, но detection ещё не пришёл */}
       {!scanErrorCode && status === 'done' && detection === null && result !== null && (
-        <p style={styles.hint}>Анализ результатов...</p>
+        <p style={styles.hint}>{UI.analyzingResults}</p>
       )}
       <ResizeHandle />
     </div>

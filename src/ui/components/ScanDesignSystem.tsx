@@ -88,7 +88,7 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
   if (step === 'sources') {
     return (
       <div style={styles.root}>
-        <h3 style={styles.title}>Источники дизайн-системы</h3>
+        <h3 style={styles.title}>{UI.sdSourcesTitle}</h3>
         {sources.length === 0 ? (
           <p style={styles.subtitle}>{UI.searchingSources}</p>
         ) : (
@@ -106,10 +106,10 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
         </ul>
         )}
         <Button disabled={enabledCount === 0} onClick={handleStartScan}>
-          Сканировать выбранные
+          {UI.sdScanSelected}
         </Button>
         <Button variant="secondary" onClick={onComplete}>
-          Пропустить
+          {UI.sdSkip}
         </Button>
       </div>
     );
@@ -118,12 +118,12 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
   if (step === 'scanning') {
     return (
       <div style={styles.root}>
-        <h3 style={styles.title}>Сканирование дизайн-системы</h3>
+        <h3 style={styles.title}>{UI.sdScanningTitle}</h3>
         <p style={styles.subtitle}>
-          {scanStage !== '' ? 'Сканирование... ' + scanStage : 'Сканирование...'}
+          {scanStage !== '' ? UI.sdScanningWith(scanStage) : UI.sdScanning}
         </p>
         <Button disabled>
-          Сканировать выбранные
+          {UI.sdScanSelected}
         </Button>
       </div>
     );
@@ -139,11 +139,11 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
 
   return (
     <div style={styles.root}>
-      <h3 style={styles.title}>Дизайн-система просканирована</h3>
+      <h3 style={styles.title}>{UI.sdScannedTitle}</h3>
 
       <ul style={styles.resultList}>
-        <li>Цветовых токенов: <strong>{colorCount}</strong></li>
-        <li>Текстовых токенов: <strong>{typographyCount}</strong></li>
+        <li>{UI.sdColorTokensLabel} <strong>{colorCount}</strong></li>
+        <li>{UI.sdTypographyTokensLabel} <strong>{typographyCount}</strong></li>
         <li>{UI.sdSpacingLabel}: <strong>{spacingCount}</strong></li>
         <li>{UI.sdRadiusLabel}: <strong>{radiusCount}</strong></li>
       </ul>
@@ -152,10 +152,10 @@ export function ScanDesignSystem({ onComplete, scope, onScopeChange }: Props) {
         <ScopeSelector value={scope} onChange={onScopeChange} />
       </div>
       <Button onClick={onComplete}>
-        Запустить аудит
+        {UI.sdRunAudit}
       </Button>
       <Button variant="secondary" onClick={handleRescan}>
-        Пересканировать
+        {UI.sdRescan}
       </Button>
     </div>
   );
