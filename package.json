@@ -1,6 +1,6 @@
 {
   "name": "designlint-ai",
-  "version": "0.14.11",
+  "version": "0.14.12",
   "description": "Figma plugin for design system audit",
   "scripts": {
     "build:sandbox": "vite build --mode sandbox",
