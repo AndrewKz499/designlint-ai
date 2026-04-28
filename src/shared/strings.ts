@@ -1,15 +1,15 @@
-// Единый словарь пользовательских строк UI.
-// Правило: ни один компонент не показывает строку напрямую — только через этот словарь.
+// Single source of truth for user-facing UI strings.
+// Rule: no component renders text directly — only via this dictionary.
 
 import type { ViolationType } from './types';
 
-// ─── Категории нарушений ─────────────────────────────────────────────────────
+// ─── Violation categories ────────────────────────────────────────────────────
 export type Category = 'colors' | 'typography' | 'layout';
 
 export const CATEGORY_META: Record<Category, { emoji: string; label: string }> = {
-  colors:     { emoji: '🎨', label: 'Цвета' },
-  typography: { emoji: '✏️', label: 'Шрифты' },
-  layout:     { emoji: '📐', label: 'Макет' },
+  colors:     { emoji: '🎨', label: 'Colors' },
+  typography: { emoji: '✏️', label: 'Typography' },
+  layout:     { emoji: '📐', label: 'Layout' },
 };
 
 export const VIOLATION_CATEGORY: Record<ViolationType, Category> = {
@@ -21,158 +21,158 @@ export const VIOLATION_CATEGORY: Record<ViolationType, Category> = {
   spacing_off_scale:     'layout',
 };
 
-// ─── Заголовки нарушений на языке дизайнера ──────────────────────────────────
+// ─── Violation titles in designer-friendly language ──────────────────────────
 export const VIOLATION_TITLE: Record<ViolationType, string> = {
-  hardcoded_color:       'Цвет не из системы',
-  detached_style:        'Отвязанный цвет',
-  similar_to_token:      'Почти как токен',
-  missing_text_style:    'Шрифт без стиля',
-  nonstandard_font_size: 'Размер вне шкалы',
-  spacing_off_scale:     'Отступ вне шкалы',
+  hardcoded_color:       'Hardcoded color',
+  detached_style:        'Detached color style',
+  similar_to_token:      'Near a token',
+  missing_text_style:    'Missing text style',
+  nonstandard_font_size: 'Off-scale font size',
+  spacing_off_scale:     'Off-scale spacing',
 };
 
 export const VIOLATION_HINT: Record<ViolationType, string> = {
-  hardcoded_color:       'Этот цвет задан вручную. В системе есть подходящий токен.',
-  detached_style:        'Стиль был привязан, но отвязался. Верните привязку.',
-  similar_to_token:      'Цвет очень близок к токену — лучше использовать его.',
-  missing_text_style:    'Текст без стиля: при изменении типографики придётся править вручную.',
-  nonstandard_font_size: 'Размер шрифта не из типографической шкалы.',
-  spacing_off_scale:     'Отступ не укладывается в шаг сетки.',
+  hardcoded_color:       'This color is hardcoded. The system has a matching token.',
+  detached_style:        'The style was linked but got detached. Re-link it.',
+  similar_to_token:      'This color is very close to a token — better to use the token.',
+  missing_text_style:    'Text without a style: typography changes will need manual edits.',
+  nonstandard_font_size: 'Font size is not on the typographic scale.',
+  spacing_off_scale:     'Spacing does not fit the grid step.',
 };
 
-// ─── Источники дизайн-системы ────────────────────────────────────────────────
+// ─── Design System sources ───────────────────────────────────────────────────
 export const SOURCE_LABEL = {
-  paintStyles: 'Цвета (стили)',
-  textStyles:  'Шрифты (стили)',
-  variables:   'Переменные',
-  jsonTokens:  'Подключённые JSON-файлы',
+  paintStyles: 'Color styles',
+  textStyles:  'Text styles',
+  variables:   'Variables',
+  jsonTokens:  'Linked JSON files',
 };
 
-// ─── Режимы области сканирования ─────────────────────────────────────────────
+// ─── Scan scope modes ────────────────────────────────────────────────────────
 export const SCOPE_LABEL = {
-  selection: 'Выделение',
+  selection: 'Selection',
   section:   'Section',
-  topFrames: 'Фреймы страницы',
-  page:      'Вся страница',
+  topFrames: 'Page frames',
+  page:      'Whole page',
 };
 
-// ─── Приоритеты (под Фазу 10) ────────────────────────────────────────────────
+// ─── Priorities (Phase 10) ───────────────────────────────────────────────────
 export const PRIORITY_META = {
-  critical:  { emoji: '🔴', label: 'Критично' },
-  important: { emoji: '🟡', label: 'Важно' },
-  minor:     { emoji: '⚪', label: 'Мелочь' },
+  critical:  { emoji: '🔴', label: 'Critical' },
+  important: { emoji: '🟡', label: 'Major' },
+  minor:     { emoji: '⚪', label: 'Minor' },
 };
 
-// ─── Ключевые строки экранов ─────────────────────────────────────────────────
+// ─── Key screen strings ──────────────────────────────────────────────────────
 export const UI = {
-  startTitle:       'Проверить макет на соответствие дизайн-системе',
-  startCta:         'Проверить выделение',
-  startCtaEmpty:    'Выделите фрейм или Section',
-  sourcesToggle:    'Источники дизайн-системы',
-  rescanSources:    'Пересканировать источники',
+  startTitle:       'Audit your layout against the design system',
+  startCta:         'Audit selection',
+  startCtaEmpty:    'Select a frame or Section',
+  sourcesToggle:    'Design System sources',
+  rescanSources:    'Rescan sources',
 
-  progressLabel:    (done: number, total: number) => `Проверено ${done} из ${total}`,
-  scanningIdle:     'Сканирование...',
-  scanningWithCount: (n: number) => `Проверено ${n} элементов...`,
+  progressLabel:    (done: number, total: number) => `Checked ${done} of ${total}`,
+  scanningIdle:     'Scanning…',
+  scanningWithCount: (n: number) => `Checked ${n} elements…`,
 
-  dashErrorsTitle:  (count: number) => `Выявленные ошибки: ${count}`,
-  dashAreasTitle:   'Области проверки',
-  dashScoreLabel:   'Оценка макета',
-  dashContextBadge: (name: string, count: number) => `Проверено: ${name} · ${count} элементов`,
-  dashAiFixAll:     '✨ Исправить всё с помощью AI',
-  dashFixAll:       'Исправить все',
-  dashReviewOne:    'Исправить по очереди',
-  dashRescan:       'Сканировать заново',
-  dashEmpty:        'Всё в порядке. Макет соответствует системе.',
+  dashErrorsTitle:  (count: number) => `Detected issues: ${count}`,
+  dashAreasTitle:   'Audit areas',
+  dashScoreLabel:   'Layout score',
+  dashContextBadge: (name: string, count: number) => `Scanned: ${name} · ${count} elements`,
+  dashAiFixAll:     '✨ Fix all with AI',
+  dashFixAll:       'Fix all',
+  dashReviewOne:    'Review one by one',
+  dashRescan:       'Rescan',
+  dashEmpty:        'Looks good. Layout matches the system.',
 
-  reviewTitle:      'Проверить и исправить',
-  reviewFix:        'Исправить',
-  reviewSkip:       'Пропустить',
-  reviewIgnore:     'Скрыть',
-  reviewBack:       '← Назад',
-  reviewDone:       'Готово',
-  reviewCurrent:    'Сейчас',
-  reviewSuggested:  'Рекомендуется',
+  reviewTitle:      'Review and fix',
+  reviewFix:        'Fix',
+  reviewSkip:       'Skip',
+  reviewIgnore:     'Hide',
+  reviewBack:       '← Back',
+  reviewDone:       'Done',
+  reviewCurrent:    'Current',
+  reviewSuggested:  'Suggested',
 
-  scopeTitle:       'Область проверки',
-  searchingSources: 'Ищем источники…',
-  sdSpacingLabel:   'Отступы',
-  sdRadiusLabel:    'Скругления',
+  scopeTitle:       'Audit scope',
+  searchingSources: 'Searching sources…',
+  sdSpacingLabel:   'Spacing',
+  sdRadiusLabel:    'Corner radii',
 
-  errNoSelection:   'Выделите фрейм или Section, чтобы начать проверку.',
-  errNoTokens:      'В файле нет стилей и Variables. Добавьте цветовые стили или опубликуйте библиотеку, чтобы плагин мог сравнивать макет с системой.',
-  errNoAiKey:       'Для AI-объяснений нужен ключ Google Gemini. Добавьте его в Настройках или выключите тоггл «Использовать AI» там же.',
+  errNoSelection:   'Select a frame or Section to start the audit.',
+  errNoTokens:      'There are no styles or Variables in this file. Add color styles or publish a library so the plugin can compare the layout against the system.',
+  errNoAiKey:       'AI explanations need a Google Gemini key. Add it in Settings or turn off the “Use AI” toggle there.',
 
-  reportTitle:        'Готово',
-  reportFixedLabel:   (fixed: number, total: number) => `Исправлено ${fixed} из ${total}`,
-  reportScopeLabel:   (label: string) => `Область: ${label}`,
-  reportCheckAgain:   'Проверить ещё',
-  reportClearMarkers: 'Убрать маркеры с холста',
-  reportMarkersCleared: 'Маркеры убраны',
+  reportTitle:        'Done',
+  reportFixedLabel:   (fixed: number, total: number) => `Fixed ${fixed} of ${total}`,
+  reportScopeLabel:   (label: string) => `Scope: ${label}`,
+  reportCheckAgain:   'Audit again',
+  reportClearMarkers: 'Clear markers from canvas',
+  reportMarkersCleared: 'Markers cleared',
 
-  // О плагине
-  aboutTitle:       'О плагине',
-  aboutDescription: 'Аудит дизайн-систем в Figma на языке дизайнера',
-  aboutVersion:     'Версия 0.14.12',
-  aboutFeedback:    'Обратная связь',
+  // About
+  aboutTitle:       'About',
+  aboutDescription: 'Design system audit for Figma in plain designer language',
+  aboutVersion:     'Version 0.14.13',
+  aboutFeedback:    'Feedback',
 
-  aiToggleLabel: 'Использовать AI для объяснений',
-  aiToggleHint:  'Когда выключено — плагин работает только на правилах без запросов к Gemini',
+  aiToggleLabel: 'Use AI for explanations',
+  aiToggleHint:  'When off, the plugin runs on rules only without calling Gemini',
 
-  settingsRemoveKey:  'Удалить ключ',
-  settingsKeyRemoved: 'Ключ удалён',
+  settingsRemoveKey:  'Remove key',
+  settingsKeyRemoved: 'Key removed',
 
   // ─── App.tsx ─────────────────────────────────────────────────────────────
-  errorNoSelectionTitle:  'Нет выделения',
-  errorNoSelectionAction: 'Попробовать снова',
-  errorNoTokensTitle:     'Нет токенов дизайн-системы',
-  errorNoTokensAction:    'Понятно',
-  scanReady:              'Готов к сканированию',
-  scanFile:               'Сканировать файл',
-  navigateToNodeTitle:    'Перейти к элементу',
-  analyzingResults:       'Анализ результатов...',
+  errorNoSelectionTitle:  'No selection',
+  errorNoSelectionAction: 'Try again',
+  errorNoTokensTitle:     'No design system tokens',
+  errorNoTokensAction:    'Got it',
+  scanReady:              'Ready to scan',
+  scanFile:               'Scan file',
+  navigateToNodeTitle:    'Go to element',
+  analyzingResults:       'Analyzing results…',
 
   // ─── Settings.tsx ────────────────────────────────────────────────────────
-  settingsKeyValid:       (text: string) => `✓ Ключ работает: ${text}`,
-  settingsKeyError:       (msg: string) => `✗ Ошибка: ${msg}`,
-  settingsBack:           '← Назад',
-  settingsTitle:          'Настройки',
-  settingsKeyHintExisting: 'Ключ сохранён. Введите новый для замены.',
-  settingsKeyHintNew:     'Введите ключ для AI-функций (Исправить все).',
-  settingsGetKey:         'Получить ключ на aistudio.google.com',
-  settingsKeySaved:       'Сохранено ✓',
-  settingsSaveKey:        'Сохранить ключ',
-  settingsKeyTesting:     'Проверяю...',
-  settingsTestKey:        'Проверить ключ',
+  settingsKeyValid:       (text: string) => `✓ Key works: ${text}`,
+  settingsKeyError:       (msg: string) => `✗ Error: ${msg}`,
+  settingsBack:           '← Back',
+  settingsTitle:          'Settings',
+  settingsKeyHintExisting: 'Key saved. Enter a new one to replace it.',
+  settingsKeyHintNew:     'Enter a key for AI features (Fix all).',
+  settingsGetKey:         'Get a key at aistudio.google.com',
+  settingsKeySaved:       'Saved ✓',
+  settingsSaveKey:        'Save key',
+  settingsKeyTesting:     'Testing…',
+  settingsTestKey:        'Test key',
 
   // ─── Spinner.tsx ─────────────────────────────────────────────────────────
-  spinnerLoading:         'Загрузка',
+  spinnerLoading:         'Loading',
 
   // ─── ScanDesignSystem.tsx ────────────────────────────────────────────────
-  sdSourcesTitle:         'Источники дизайн-системы',
-  sdScanSelected:         'Сканировать выбранные',
-  sdSkip:                 'Пропустить',
-  sdScanningTitle:        'Сканирование дизайн-системы',
-  sdScanning:             'Сканирование...',
-  sdScanningWith:         (stage: string) => `Сканирование... ${stage}`,
-  sdScannedTitle:         'Дизайн-система просканирована',
-  sdColorTokensLabel:     'Цветовых токенов:',
-  sdTypographyTokensLabel: 'Текстовых токенов:',
-  sdRunAudit:             'Запустить аудит',
-  sdRescan:               'Пересканировать',
+  sdSourcesTitle:         'Design System sources',
+  sdScanSelected:         'Scan selected',
+  sdSkip:                 'Skip',
+  sdScanningTitle:        'Scanning the Design System',
+  sdScanning:             'Scanning…',
+  sdScanningWith:         (stage: string) => `Scanning… ${stage}`,
+  sdScannedTitle:         'Design System scanned',
+  sdColorTokensLabel:     'Color tokens:',
+  sdTypographyTokensLabel: 'Text tokens:',
+  sdRunAudit:             'Run audit',
+  sdRescan:               'Rescan',
 
   // ─── ReviewFix.tsx ───────────────────────────────────────────────────────
-  errorAiGeneric:         'Не удалось получить объяснение.',
-  errorAiInvalidKey:      'Неверный API-ключ. Проверьте настройки.',
-  errorAiRateLimit:       'Превышен лимит запросов. Попробуйте позже.',
-  errorAiUnavailable:     'Сервис временно недоступен.',
-  previewBuildError:      'Не удалось построить превью',
-  previewLoadError:       'Не удалось загрузить превью',
-  previewLoading:         'Загружаем превью…',
-  previewAlt:             'Превью ноды',
-  recommendationAi:       'Рекомендация AI',
-  aiKeyMissing:           'AI-ключ не указан',
-  openSettings:           'Открыть настройки',
-  thinkingExplanation:    'Думаю над объяснением...',
-  tryAgain:               'Попробовать ещё раз',
+  errorAiGeneric:         "Couldn't get an explanation.",
+  errorAiInvalidKey:      'Invalid API key. Check Settings.',
+  errorAiRateLimit:       'Rate limit exceeded. Please try again later.',
+  errorAiUnavailable:     'Service temporarily unavailable.',
+  previewBuildError:      "Couldn't build preview",
+  previewLoadError:       "Couldn't load preview",
+  previewLoading:         'Loading preview…',
+  previewAlt:             'Node preview',
+  recommendationAi:       'AI suggestion',
+  aiKeyMissing:           'AI key not set',
+  openSettings:           'Open settings',
+  thinkingExplanation:    'Thinking…',
+  tryAgain:               'Try again',
 };

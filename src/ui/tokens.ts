@@ -77,6 +77,7 @@ export const typography = {
 export const spacing = {
   s200: 8,
   s300: 12,
+  s350: 18, // 18 — extended horizontal screen padding
   s400: 16,
 };
 

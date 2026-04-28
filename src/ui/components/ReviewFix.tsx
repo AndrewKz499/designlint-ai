@@ -165,7 +165,7 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
 
     callGemini(
       [{ role: 'user', content: prompt }],
-      'Ты помощник дизайнера, объясняешь выбор токенов из дизайн-системы. Отвечай кратко, по делу, на русском.',
+      'You are a designer assistant who explains design system token choices. Reply concisely and to the point, in English.',
       200
     )
       .then(text => {
