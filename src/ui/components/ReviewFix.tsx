@@ -151,17 +151,27 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
     }
 
     // Кэша нет — запускаем AI
+    let prompt: string;
     const tokenInfo = current.candidates?.find(c => c.id === selectedTokenId);
-    if (!tokenInfo) return;
+    if (tokenInfo) {
+      // Случай: есть candidates (hardcoded_color, missing_text_style)
+      prompt = 'Violation: ' + current.currentValue + ' on node "' + current.nodeName +
+        '". Suggested token: "' + tokenInfo.name + '" with value ' + tokenInfo.value +
+        '. Explain in 1-2 short sentences why this token fits. ' +
+        'No preamble, get straight to the point. Reply in English.';
+    } else if (current.suggestedToken && current.suggestedTokenId === selectedTokenId) {
+      // Случай: нет candidates, но есть suggestedToken (detached_style, similar_to_token)
+      prompt = 'On node "' + current.nodeName + '" the value ' + current.currentValue +
+        ' was previously linked to design system token "' + current.suggestedToken +
+        '" but the link was detached. Explain in 1-2 short sentences why re-linking ' +
+        'restores design system consistency. No preamble, get straight to the point. Reply in English.';
+    } else {
+      return;
+    }
 
     setExplainError(false);
     setExplaining(true);
     setExplanation('');
-
-    const prompt = 'Нарушение: ' + current.currentValue + ' на ноде "' + current.nodeName +
-      '". Предложенный токен: "' + tokenInfo.name + '" со значением ' + tokenInfo.value +
-      '. Объясни в 1-2 коротких предложениях, почему этот токен подходит. ' +
-      'Без вступлений, сразу по сути. На русском.';
 
     callGemini(
       [{ role: 'user', content: prompt }],
@@ -293,6 +303,31 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
   const categoryLabel = CATEGORY_META[currentCategory as keyof typeof CATEGORY_META]
     ? CATEGORY_META[currentCategory as keyof typeof CATEGORY_META].label : '';
 
+  // Опции для SelectField: либо набор кандидатов, либо единственный suggestedToken-фолбэк
+  const suggestionOptions: SelectOption[] = (() => {
+    if (current && current.candidates && current.candidates.length > 0) {
+      return current.candidates.map((c): SelectOption => {
+        const isColor = c.value.indexOf('#') === 0;
+        return {
+          id: c.id,
+          label: c.name,
+          swatch: isColor ? c.value : undefined,
+          badge: c.kind === 'variables' ? 'VAR' : 'STYLE',
+        };
+      });
+    }
+    if (current && current.suggestedToken && current.suggestedTokenId) {
+      const isColor = current.currentValue.indexOf('#') === 0;
+      return [{
+        id: current.suggestedTokenId,
+        label: current.suggestedToken,
+        swatch: isColor ? current.currentValue : undefined,
+        badge: 'STYLE',
+      }];
+    }
+    return [];
+  })();
+
   return (
     <div style={styles.root}>
       <Header onSettingsClick={onSettingsClick} />
@@ -336,15 +371,11 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
               <div style={styles.previewPlaceholder}>{previewError}</div>
             )}
           </div>
-          {current.candidates && current.candidates.length > 0 && (
+          {suggestionOptions.length > 0 && (
             <SelectField
               label={UI.recommendationAi}
               value={selectedTokenId || ''}
-              options={current.candidates.map(function(c): SelectOption {
-                var isColor = c.value.indexOf('#') === 0;
-                var badge = c.kind === 'variables' ? 'VAR' : 'STYLE';
-                return { id: c.id, label: c.name, swatch: isColor ? c.value : undefined, badge: badge };
-              })}
+              options={suggestionOptions}
               onChange={setSelectedTokenId}
             />
           )}
