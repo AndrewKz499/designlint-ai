@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { PluginMessage, ReferenceSnapshot, TokenSource, TokenPolicy } from '../../shared/types';
 import { UI } from '../../shared/strings';
 import { Button } from './ui/Button';
+import { Spinner } from './ui/Spinner';
 import { colors, typography, spacing } from '../tokens';
 
 type Step = 'scanning' | 'ready';
@@ -101,9 +102,12 @@ export function ScanDesignSystem({ onComplete }: Props) {
     return (
       <div style={styles.root}>
         <h3 style={styles.title}>{UI.sdScanningTitle}</h3>
-        <p style={styles.subtitle}>
-          {scanStage !== '' ? UI.sdScanningWith(scanStage) : UI.sdScanning}
-        </p>
+        <div style={styles.scanningRow}>
+          <p style={styles.subtitle}>
+            {scanStage !== '' ? UI.sdScanningWith(scanStage) : UI.sdScanning}
+          </p>
+          <Spinner size={20} />
+        </div>
         <Button disabled>{UI.sdScanSelected}</Button>
       </div>
     );
@@ -264,6 +268,14 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: typography.body.lineHeight,
     color: colors.contentMuted,
     margin: 0,
+  },
+  scanningRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.s200,
+    width: '100%',
   },
   section: {
     display: 'flex',
