@@ -1,4 +1,4 @@
-import type { ScanResult, ReferenceSnapshot, Violation, DetectionResult, Severity } from '../shared/types';
+import type { ScanResult, ReferenceSnapshot, Violation, DetectionResult, Severity, TokenSource, TokenPolicy } from '../shared/types';
 
 // ---------------------------------------------------------------------------
 // Вспомогательные функции
@@ -41,6 +41,8 @@ function makeViolationId(nodeId: string, type: string): string {
 export function runDetection(
   scanResult: ScanResult,
   snapshot: ReferenceSnapshot | null,
+  tokenSource: TokenSource,
+  tokenPolicy: TokenPolicy,
 ): DetectionResult {
   const violations: Violation[] = [];
 
@@ -55,6 +57,7 @@ export function runDetection(
   for (let i = 0; i < scanResult.colors.length; i++) {
     const color = scanResult.colors[i];
     if (color.boundStyleId !== null) continue;
+    if (color.boundVariableId !== null) continue;
 
     const violation: Violation = {
       id: makeViolationId(color.nodeId, 'hardcoded_color'),
@@ -105,15 +108,21 @@ export function runDetection(
     // Извлекаем цветовые токены один раз
     const colorTokens = [];
     for (let i = 0; i < snapshot.tokens.length; i++) {
-      if (snapshot.tokens[i].category === 'color') {
-        colorTokens.push(snapshot.tokens[i]);
-      }
+      const t = snapshot.tokens[i];
+      if (t.category !== 'color') continue;
+      if (tokenSource === 'styles' && t.kind !== 'paintStyles') continue;
+      if (tokenSource === 'variables' && t.kind !== 'variables') continue;
+      // Policy 'semantic-only': для variables оставляем только isSemantic === true.
+      // PaintStyles "семантичны" по природе (имеют осмысленные имена) — пропускаем.
+      if (tokenPolicy === 'semantic-only' && t.kind === 'variables' && t.isSemantic !== true) continue;
+      colorTokens.push(t);
     }
 
     // --- Уточнение цветовых нарушений ---
     for (let i = 0; i < scanResult.colors.length; i++) {
       const color = scanResult.colors[i];
       if (color.boundStyleId !== null) continue;
+      if (color.boundVariableId !== null) continue;
 
       const existingIndex = colorViolationIndex[color.nodeId];
       if (existingIndex === undefined) continue;
@@ -235,12 +244,16 @@ export function runDetection(
   }
 
   // --- Рекомендация ближайшего текстового стиля для текстов без стиля ---
+  // TODO: tokenPolicy 'semantic-only' для текста пока не применяется —
+  // у Figma нет text-Variables, а TextStyles по природе семантичны.
   var textTokens = [];
   if (snapshot) {
     for (var t = 0; t < snapshot.tokens.length; t++) {
-      if (snapshot.tokens[t].category === 'typography') {
-        textTokens.push(snapshot.tokens[t]);
-      }
+      var typoTok = snapshot.tokens[t];
+      if (typoTok.category !== 'typography') continue;
+      if (tokenSource === 'styles' && typoTok.kind !== 'textStyles') continue;
+      if (tokenSource === 'variables' && typoTok.kind !== 'variables') continue;
+      textTokens.push(typoTok);
     }
   }
 

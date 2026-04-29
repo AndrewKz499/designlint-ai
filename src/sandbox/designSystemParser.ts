@@ -98,6 +98,36 @@ export async function discoverSources(): Promise<SnapshotSource[]> {
 }
 
 /**
+ * Рекурсивно разрешает алиасы переменной до raw-цвета.
+ * Защита от циклов: глубина не более 5 уровней.
+ * Возвращает null, если алиас не резолвится (битая ссылка / цикл).
+ */
+async function resolveAlias(
+  value: VariableValue,
+  depth: number = 0,
+): Promise<RGB | RGBA | null> {
+  if (depth > 5) return null;
+
+  // raw-цвет — конец рекурсии
+  if (isRGBColor(value)) return value as RGB | RGBA;
+
+  // алиас — резолвим целевую переменную
+  if (typeof value === 'object' && value !== null && 'type' in value && (value as { type: string }).type === 'VARIABLE_ALIAS') {
+    try {
+      const target = await figma.variables.getVariableByIdAsync((value as { id: string }).id);
+      if (!target) return null;
+      const targetModeValues = Object.values(target.valuesByMode);
+      if (targetModeValues.length === 0) return null;
+      return await resolveAlias(targetModeValues[0], depth + 1);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Собирает токены из включённых источников и строит ReferenceSnapshot —
  * эталонный снепшот дизайн-системы для последующего сравнения.
  *
@@ -129,8 +159,21 @@ export async function buildSnapshot(enabledSources: string[]): Promise<Reference
         const modeValues = Object.values(variable.valuesByMode);
         if (modeValues.length === 0) continue;
         const raw = modeValues[0];
-        if (!isRGBColor(raw)) continue; // алиас или неожиданный формат
-        value = rgbToHex(raw.r, raw.g, raw.b);
+        const isAlias = typeof raw === 'object' && raw !== null && 'type' in raw && (raw as { type: string }).type === 'VARIABLE_ALIAS';
+        const resolved = await resolveAlias(raw);
+        if (!resolved) continue; // алиас не резолвился (циклы / битые ссылки) → пропускаем
+        value = rgbToHex(resolved.r, resolved.g, resolved.b);
+
+        tokens.push({
+          id: variable.id,
+          name: variable.name,
+          category,
+          value,
+          source: collection.name,
+          kind: 'variables' as const,
+          isSemantic: isAlias,
+        });
+        continue;
 
       } else if (variable.resolvedType === 'FLOAT') {
         category = floatCategory(variable.name);

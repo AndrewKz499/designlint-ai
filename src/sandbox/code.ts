@@ -24,6 +24,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   if (msg.type === 'start-scan') {
     try {
       var scope = (msg.data && msg.data.scope) ? msg.data.scope : 'selection';
+      var tokenSource = (msg.data && msg.data.tokenSource) ? msg.data.tokenSource : 'both';
+      var tokenPolicy = (msg.data && msg.data.tokenPolicy) ? msg.data.tokenPolicy : 'all-tokens';
       if (scope === 'selection' && figma.currentPage.selection.length === 0) {
         figma.ui.postMessage({ type: 'scan-error', data: { code: 'no-selection' } });
         return;
@@ -35,7 +37,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         return;
       }
 
-      const detection = runDetection(scanResult, snapshot);
+      const detection = runDetection(scanResult, snapshot, tokenSource, tokenPolicy);
       figma.ui.postMessage({ type: 'scan-complete', data: scanResult });
       figma.ui.postMessage({ type: 'detection-complete', data: detection });
       // Автоматически расставляем маркеры после завершения аудита

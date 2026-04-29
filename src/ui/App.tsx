@@ -1,6 +1,6 @@
 // Главный компонент UI плагина
 import { useState, useEffect } from 'react';
-import type { PluginMessage, ScanResult, DetectionResult, ScanScope } from '../shared/types';
+import type { PluginMessage, ScanResult, DetectionResult, ScanScope, TokenSource, TokenPolicy } from '../shared/types';
 import { VIOLATION_TITLE, VIOLATION_CATEGORY, CATEGORY_META, UI } from '../shared/strings';
 import type { Category } from '../shared/strings';
 import { ScanDesignSystem } from './components/ScanDesignSystem';
@@ -75,6 +75,8 @@ export function App() {
   const [aiEnabled, setAiEnabled] = useState<boolean>(true);
   const [scanErrorCode, setScanErrorCode] = useState<'no-selection' | 'no-tokens' | 'no-ai-key' | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  const [tokenSource, setTokenSource] = useState<TokenSource>('variables');
+  const [tokenPolicy, setTokenPolicy] = useState<TokenPolicy>('all-tokens');
 
   useEffect(() => {
     if (detection && detection.violations.length > 0) {
@@ -123,13 +125,15 @@ export function App() {
   }, []);
 
   // Mode 0 завершён — переходим к сканеру и сразу запускаем сканирование
-  const handleMode0Complete = () => {
+  const handleMode0Complete = (source: TokenSource, policy: TokenPolicy) => {
+    setTokenSource(source);
+    setTokenPolicy(policy);
     setCurrentView('scanner');
     setStatus('scanning');
     setProgress(null);
     setResult(null);
     setDetection(null);
-    sendMessage({ type: 'start-scan', data: { scope } });
+    sendMessage({ type: 'start-scan', data: { scope, tokenSource: source, tokenPolicy: policy } });
   };
 
   const handleStartScan = () => {
@@ -137,7 +141,7 @@ export function App() {
     setProgress(null);
     setResult(null);
     setDetection(null);
-    sendMessage({ type: 'start-scan', data: { scope } });
+    sendMessage({ type: 'start-scan', data: { scope, tokenSource, tokenPolicy } });
   };
 
   const handleReset = () => {
@@ -213,7 +217,7 @@ export function App() {
     return (
       <div style={styles.root}>
         <Header onSettingsClick={() => setCurrentView('settings')} />
-        <ScanDesignSystem onComplete={handleMode0Complete} scope={scope} onScopeChange={setScope} />
+        <ScanDesignSystem onComplete={handleMode0Complete} />
         <ResizeHandle />
       </div>
     );
@@ -424,7 +428,7 @@ export function App() {
 
 const styles = {
   root: {
-    padding: spacing.s400,
+    padding: spacing.s350,
     fontFamily: typography.body.fontFamily,
     fontSize: '13px',
     color: colors.content,

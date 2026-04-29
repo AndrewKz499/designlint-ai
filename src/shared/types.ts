@@ -14,7 +14,15 @@ export interface ScannedColor {
   boundStyleId: string | null;
   /** Имя привязанного стиля; null если hardcoded */
   boundStyleName: string | null;
+  /** ID переменной, если fill привязан через boundVariables.color. null, если привязки нет или fill — solid color/Style */
+  boundVariableId: string | null;
 }
+
+/** Источник, используемый для аудита — Styles, Variables или оба */
+export type TokenSource = 'styles' | 'variables' | 'both';
+
+/** Политика отбора токенов: только семантические (алиасные) или вся библиотека */
+export type TokenPolicy = 'semantic-only' | 'all-tokens';
 
 /** Найденный текстовый элемент в Figma-файле */
 export interface ScannedText {
@@ -73,6 +81,8 @@ export interface Token {
   /** Источник токена, например "Local Paint Styles" или "Variables/Colors" */
   source: string;
   kind: 'paintStyles' | 'textStyles' | 'variables';
+  /** true если переменная была VARIABLE_ALIAS хотя бы в одном mode. undefined для Styles. */
+  isSemantic?: boolean;
 }
 
 /** Обнаруженный источник токенов дизайн-системы в Figma-файле */
@@ -205,7 +215,7 @@ export type PluginMessage =
   /** Ответ на ping */
   | { type: 'pong' }
   /** UI запрашивает запуск сканирования */
-  | { type: 'start-scan'; data?: { scope?: ScanScope } }
+  | { type: 'start-scan'; data?: { scope?: ScanScope; tokenSource?: TokenSource; tokenPolicy?: TokenPolicy } }
   /** Промежуточный прогресс сканирования: sandbox → UI */
   | { type: 'scan-progress'; data: { current: number; total: number } }
   /** Сканирование завершено, данные готовы: sandbox → UI */

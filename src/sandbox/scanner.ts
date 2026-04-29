@@ -81,6 +81,7 @@ function walkNode(
       const styleId = 'fillStyleId' in node ? node.fillStyleId : '';
       const boundStyleId = typeof styleId === 'string' && styleId !== '' ? styleId : null;
       const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId, styleNames) : null;
+      const boundVariableId = fill.boundVariables?.color?.id ?? null;
 
       acc.colors.push({
         nodeId: node.id,
@@ -91,6 +92,7 @@ function walkNode(
         opacity,
         boundStyleId,
         boundStyleName,
+        boundVariableId,
       });
     }
   }
