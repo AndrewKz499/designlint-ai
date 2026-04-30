@@ -251,8 +251,9 @@ export function runDetection(
     for (var t = 0; t < snapshot.tokens.length; t++) {
       var typoTok = snapshot.tokens[t];
       if (typoTok.category !== 'typography') continue;
-      if (tokenSource === 'styles' && typoTok.kind !== 'textStyles') continue;
-      if (tokenSource === 'variables' && typoTok.kind !== 'variables') continue;
+      // Типографика всегда из TextStyles — text-Variables в Figma не существуют.
+      // tokenSource фильтр игнорируется для text-токенов.
+      if (typoTok.kind !== 'textStyles') continue;
       textTokens.push(typoTok);
     }
   }
