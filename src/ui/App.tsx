@@ -124,16 +124,18 @@ export function App() {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  // Mode 0 завершён — переходим к сканеру и сразу запускаем сканирование
+  // Mode 0 завершён — переходим на Экран 2 (Audit areas), скан запускается
+  // отдельно по кнопке Scan file через handleStartScan
   const handleMode0Complete = (source: TokenSource, policy: TokenPolicy) => {
     setTokenSource(source);
     setTokenPolicy(policy);
     setCurrentView('scanner');
-    setStatus('scanning');
+    setStatus('idle');           // было 'scanning' — теперь idle, чтобы показался Экран 2 (Audit areas)
     setProgress(null);
     setResult(null);
     setDetection(null);
-    sendMessage({ type: 'start-scan', data: { scope, tokenSource: source, tokenPolicy: policy } });
+    setScanErrorCode(null);      // на всякий случай сбросить, если был старый ErrorCard
+    // НЕ слать start-scan здесь — это делает handleStartScan по кнопке Scan file на Экране 2
   };
 
   const handleStartScan = () => {
