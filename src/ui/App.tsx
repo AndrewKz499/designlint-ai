@@ -434,7 +434,7 @@ const styles = {
     color: colors.content,
     display: 'flex',
     flexDirection: 'column',
-    minHeight: '100vh',
+    minHeight: '100%',
     boxSizing: 'border-box',
   },
   hint: {
