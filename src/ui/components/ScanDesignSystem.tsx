@@ -287,14 +287,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.caption.fontSize,
     fontWeight: typography.caption.fontWeight,
     lineHeight: typography.caption.lineHeight,
-    color: colors.contentMuted,
+    color: colors.content,
   },
   sectionDescription: {
     fontFamily: typography.body.fontFamily,
     fontSize: typography.body.fontSize,
     fontWeight: typography.body.fontWeight,
     lineHeight: typography.body.lineHeight,
-    color: colors.contentMuted,
+    color: colors.content,
   },
   optionContent: {
     display: 'flex',
@@ -306,7 +306,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.caption.fontSize,
     fontWeight: typography.caption.fontWeight,
     lineHeight: typography.caption.lineHeight,
-    color: colors.contentMuted,
+    color: colors.content,
   },
   libraryRow: {
     display: 'flex',
@@ -336,7 +336,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: typography.caption.fontSize,
     fontWeight: typography.caption.fontWeight,
     lineHeight: typography.caption.lineHeight,
-    color: colors.contentMuted,
+    color: colors.content,
   },
   radioRow: {
     display: 'flex',
