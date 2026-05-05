@@ -79,16 +79,6 @@ export function App() {
   const [tokenPolicy, setTokenPolicy] = useState<TokenPolicy>('all-tokens');
 
   useEffect(() => {
-    if (detection && detection.violations.length > 0) {
-      const cats = new Set<Category>();
-      for (let i = 0; i < detection.violations.length; i++) {
-        cats.add(VIOLATION_CATEGORY[detection.violations[i].type]);
-      }
-      setSelectedCategories(cats);
-    }
-  }, [detection]);
-
-  useEffect(() => {
     const handler = (event: MessageEvent) => {
       const msg = event.data?.pluginMessage as PluginMessage | undefined;
       if (!msg) return;
@@ -100,10 +90,16 @@ export function App() {
         setStatus('done');
       } else if (msg.type === 'detection-complete') {
         setDetection(msg.data);
-        // Запоминаем исходные метрики только при ПЕРВОМ детекшене в сессии
+        // Инициализация только при ПЕРВОМ detection в сессии — иначе после Fix
+        // selectedCategories затрёт ручно снятые пользователем галки.
         if (totalBefore === null) {
           setTotalBefore(msg.data.violations.length);
           setFixedCount(0);
+          const cats = new Set<Category>();
+          for (let i = 0; i < msg.data.violations.length; i++) {
+            cats.add(VIOLATION_CATEGORY[msg.data.violations[i].type]);
+          }
+          setSelectedCategories(cats);
         }
       } else if (msg.type === 'ai-enabled-response') {
         setAiEnabled(msg.data.enabled);
@@ -115,6 +111,8 @@ export function App() {
         setHasApiKey(msg.data.key !== null && msg.data.key !== '');
       } else if (msg.type === 'set-api-key-done') {
         setHasApiKey(true);
+      } else if (msg.type === 'fix-complete' && msg.data.success === true) {
+        handleFixApplied(msg.data.nodeId);
       }
     };
 
