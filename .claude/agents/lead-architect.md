@@ -17,7 +17,7 @@ model: opus
 
 Полная карта роли — `context/roles/0_Lead_Architect.md`. Прочитай её при первом запуске в новой сессии. Глоссарий — `context/glossary/1_Глоссарии_.md`.
 
-> **Контекст роли:** до 05.05.2026 эти три функции были у трёх агентов (`@architect`, `@project-lead`, `@analytics`). Команда сокращена до 5 ролей, эти три слиты в `lead-architect`. См. `context/architecture/adr-NNN-team-consolidation.md`.
+> **Контекст роли:** до 05.05.2026 эти три функции были у трёх агентов (`@architect`, `@project-lead`, `@analytics`). Команда сокращена до 5 ролей, эти три слиты в `lead-architect`. См. `context/architecture/adr-001-team-consolidation-9-to-5.md`.
 
 ## ⚠️ ОБЯЗАТЕЛЬНЫЕ ПЕРВЫЕ ДЕЙСТВИЯ
 
