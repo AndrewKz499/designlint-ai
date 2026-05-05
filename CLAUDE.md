@@ -1,7 +1,7 @@
 # DesignLint AI — Project Constitution
 
 > Этот файл читается Claude Code при каждом запросе. Держи его компактным.
-> Подробности по любой роли — в `context/roles/N_Имя.md`.
+> Подробности по любой роли — в `.claude/agents/<role>.md` (карты самодостаточные).
 
 ## 1. Проект
 
@@ -19,74 +19,79 @@
 
 ```
 designlint-ai/
-├── src/sandbox/    ← логика Figma Plugin API (Backend / Sandbox Engineer)
-├── src/ui/         ← React UI в iframe (Frontend / UI Engineer)
-│   ├── components/ui/   ← дизайн-система (Designer / Visual System Designer)
-│   └── tokens.ts        ← палитра, типографика (Designer)
+├── src/sandbox/    ← логика Figma Plugin API (@backend / Sandbox Engineer)
+├── src/ui/         ← React UI в iframe (@ui-engineer / UI Engineer)
+│   ├── components/ui/   ← дизайн-система (@ui-engineer)
+│   └── tokens.ts        ← палитра, типографика (@ui-engineer)
 ├── src/shared/     ← types.ts (контракт PluginMessage), strings.ts
-├── scripts/        ← билд-скрипты (DevOps / Release Steward)
+├── scripts/        ← билд-скрипты (@release-scribe / Release Scribe)
 ├── dist/           ← результат сборки (не редактируется руками)
-├── manifest.json   ← манифест плагина (DevOps + Project Lead)
-├── package.json    ← зависимости и версия (DevOps)
+├── manifest.json   ← манифест плагина (@release-scribe + Product Owner)
+├── package.json    ← зависимости и версия (@release-scribe)
 ├── context/        ← знания проекта (читать перед задачей)
-│   ├── roles/      ← 9 технических карт ролей агентов
-│   ├── glossary/   ← глоссарий продукта
+│   ├── glossary/   ← Glossary, lifecycles, test-matrices, user-flows
 │   ├── architecture/  ← антипаттерны, ADR (заполняется по мере проекта)
 │   └── sessions/   ← отчёты сессий Ф.9–Ф.14 (исторический контекст)
 ├── logs/           ← runtime-телеметрия плагина (в .gitignore)
 └── .claude/
-    ├── agents/     ← 9 субагентов (см. раздел «Маршрутизация»)
+    ├── agents/     ← 5 субагентов (см. раздел «Маршрутизация»)
+    ├── commands/   ← slash-команды (см. раздел 3.5)
     └── skills/     ← кастомные skills
 ```
 
 ## 3. Команда агентов
 
-Девять субагентов в `.claude/agents/`. Полные технические карты — в `context/roles/`.
+Пять субагентов в `.claude/agents/`. Каждая карта самодостаточна.
 
-| Субагент | Роль | Карта |
+| Субагент | Роль |
+|---|---|
+| `lead-architect` | Lead Architect: разведка (impact map, симметрия `PluginMessage`), стратегические решения (выбор A/B, формат шагов, объём v1.0/v1.1), продуктовые метрики |
+| `backend` | Sandbox Engineer: правки `src/sandbox/*.ts` и `src/shared/types.ts` |
+| `ui-engineer` | UI Engineer: правки всего `src/ui/*` — экраны, дизайн-система (`components/ui/*`), токены (`tokens.ts`), `aiClient.ts`, шрифты |
+| `qa` | QA Inspector: тест-матрицы, баг-репорты, регрессионные чеклисты, runtime-логи, Figma MCP |
+| `release-scribe` | Release Scribe: git-операции, версии, билды, отчёты сессий, глоссарий, ADR, README, submission |
+
+## 3.5. Slash-команды
+
+Тонкие обёртки над агентами для частых ритуалов — автоматизация связок из раздела «Порядок при комплексных шагах». Файлы команд лежат в `.claude/commands/`. Команды не дублируют логику ролей и `.claude/skills/*/SKILL.md` — только оркестрируют вызовы.
+
+| Команда | Когда использовать | Что делает |
 |---|---|---|
-| `project-lead` | Product Orchestrator: приоритизация, развилки A/B, формат шагов | `context/roles/0_Project_Lead.md` |
-| `architect` | Architecture Scout: разведка перед изменением, impact analysis, симметрия протокола | `context/roles/2_Architect.md` |
-| `backend` | Sandbox Engineer: правки `src/sandbox/*.ts` и `src/shared/types.ts` | `context/roles/3_Backend.md` |
-| `frontend` | UI Engineer: правки `src/ui/App.tsx`, `src/ui/components/*.tsx`, `src/ui/aiClient.ts` | `context/roles/4_Frontend.md` |
-| `designer` | Visual System Designer: правки `src/ui/tokens.ts` и `src/ui/components/ui/*.tsx` | `context/roles/5_Designer.md` |
-| `qa` | QA Inspector: тест-матрицы, баг-репорты, регрессионные чеклисты | `context/roles/6_Quality_Assurance.md` |
-| `devops` | Release Steward: git-операции, версии, билды, размер бандла | `context/roles/7_DevOps.md` |
-| `doc-writer` | Documentation Steward: отчёты сессий, глоссарий, ADR, README | `context/roles/8_Doc_Writer.md` |
-| `analytics` | Product Analytics Steward: тренды по сессиям, метрики проекта | `context/roles/1_Analytics.md` |
+| `/scout <задача>` | Перед нелинейным изменением (3+ файла, развилка A/B, новый `PluginMessage`) | `@lead-architect` строит impact map по skill `impact-map`; при развилке — выбирает сам или эскалирует к Product Owner |
+| `/step <описание>` | Когда нужна готовая постановка задачи в формате проекта | `@lead-architect` формулирует шаг по skill `step-format` (6 обязательных полей) |
+| `/sprint <задача>` | Полный цикл изменения от идеи до коммита | Разведка и выбор → исполнитель → QA → коммит и доки. Останавливается перед действиями, требующими «✅» от Product Owner |
+| `/qa-check` | После шага исполнителя, перед коммитом | `@qa` прогоняет acceptance criteria + регрессию из последних 2 фаз; баг-репорт по skill `bug-report` |
+| `/close-session` | В конце рабочей сессии | `@release-scribe` собирает отчёт по skill `session-report` с git log своими руками и запросом ограничений у `@qa` |
+
+**Команды — это удобство, не замена ролей.** Если ситуация не покрыта командой — работай через явное `@<агент>` как раньше. Если в команде нашлось расхождение с картой роли или SKILL.md — правда в роли и skill, команду нужно обновить.
 
 ## 4. Маршрутизация задач
 
 ### Правила делегирования (главный Claude → субагент)
 
-- **Разведка перед нелинейным изменением (3+ файла, развилка A/B, новый тип `PluginMessage`)** → `@architect`
+- **Разведка перед нелинейным изменением (3+ файла, развилка A/B, новый тип `PluginMessage`)** → `@lead-architect`
+- **Выбор варианта A/B, приоритизация v1.0/v1.1, формат шагов, продуктовые метрики** → `@lead-architect`
 - **Правки в `src/sandbox/*` или `src/shared/types.ts`** → `@backend`
-- **Правки в `src/ui/App.tsx`, `src/ui/components/*.tsx` (кроме `components/ui/`), `src/ui/aiClient.ts`** → `@frontend`
-- **Правки в `src/ui/tokens.ts` или `src/ui/components/ui/*` (дизайн-система)** → `@designer`
-- **Тест-матрицы, баг-репорты, регрессия, скриншоты, известные ограничения** → `@qa`
-- **`git add/commit/push`, `git rebase`, изменение `package.json`/`manifest.json`/`aboutVersion`, билды, замер бандла** → `@devops`
-- **Отчёты сессий, глоссарий, ADR, README, README_TESTER** → `@doc-writer`
-- **Тренды по сессиям, прогресс к v1.0, аналитика долгов v1.1** → `@analytics`
-- **Развилки, влияющие на объём v1.0/v1.1, спорные приоритеты, конфликт принципов** → `@project-lead`
+- **Правки во всём `src/ui/*` — экраны (`App.tsx`, `components/*.tsx`), дизайн-система (`components/ui/*`), токены (`tokens.ts`), `aiClient.ts`, шрифты** → `@ui-engineer`
+- **Тест-матрицы, баг-репорты, регрессия, скриншоты, известные ограничения, runtime-логи из `logs/`** → `@qa`
+- **`git add/commit/push`, `git rebase`, изменение `package.json`/`manifest.json`/`aboutVersion`, билды, замер бандла, отчёты сессий, глоссарий, ADR, README, README_TESTER, submission-артефакты** → `@release-scribe`
 
 ### Когда НЕ делегировать (главный Claude отвечает сам)
 
-- Косметика в одном файле (одна строка / цвет / опечатка) — без `@architect`, сразу нужный исполнитель.
-- Простой вопрос о коде, ответ из `context/roles/` или из глоссария.
-- Уточнение терминологии — посмотреть `context/glossary/1_Глоссарии_.md`.
+- Косметика в одном файле (одна строка / цвет / опечатка) — без `@lead-architect`, сразу нужный исполнитель.
+- Простой вопрос о коде, ответ из карты агента в `.claude/agents/<role>.md` или из глоссария.
+- Уточнение терминологии — посмотреть `context/glossary/Glossary.md`.
 
 ### Порядок при комплексных шагах
 
-1. `@architect` — разведка: какие файлы, контракты, риски, варианты A/B.
-2. `@project-lead` — выбор варианта (если развилка A/B).
-3. Исполнитель (`@backend` / `@frontend` / `@designer`) — правки.
-4. `@qa` — проверка по acceptance criteria.
-5. `@devops` — атомарный коммит с правильной версией.
-6. `@doc-writer` — обновление отчёта сессии и глоссария при появлении новых терминов.
+1. `@lead-architect` — разведка (impact map), выбор варианта при развилке (или эскалация к Product Owner), формулировка шага в формате проекта.
+2. Исполнитель (`@backend` / `@ui-engineer`) — правки.
+3. `@qa` — проверка по acceptance criteria + регрессия из последних 2 фаз.
+4. `@release-scribe` — атомарный коммит с правильной версией; обновление глоссария при появлении новых терминов.
 
 ## 5. Архитектурные принципы (must-follow)
 
-Эти принципы зафиксированы по итогам Ф.11–Ф.14. Нарушение требует обоснования через `@architect`.
+Эти принципы зафиксированы по итогам Ф.11–Ф.14. Нарушение требует обоснования через `@lead-architect`.
 
 - **`figma.commitUndo` — ДО мутации**, не после. Иначе `Cmd+Z` ломается.
 - **Симметрия `PluginMessage`:** на каждое сообщение от UI должен быть ответ из sandbox (включая ветки `catch`). Пример прецедента — `fix-violation` без `fix-complete` в catch до 12.7.4.1.
@@ -95,20 +100,19 @@ designlint-ai/
 - **Атомарные коммиты:** один логический блок = один коммит. Грязный stage разбирается через `git add -p`.
 - **Версия в трёх местах одновременно:** `package.json`, `manifest.json` (если содержит), `aboutVersion` в `src/shared/strings.ts`.
 - **Жёсткое переименование токенов без алиасов:** при переименовании дизайн-токена правится сразу во всех местах. Алиасы запрещены — они порождают технический долг.
-- **Готовые компоненты дизайн-системы:** в `src/ui/components/ui/` (`Button`, `Checkbox`, `Input` и т.д.) — единственный источник UI-примитивов. Frontend не создаёт нативные `<button>` или собственные стилизованные кнопки.
+- **Готовые компоненты дизайн-системы:** в `src/ui/components/ui/` (`Button`, `Checkbox`, `Input` и т.д.) — единственный источник UI-примитивов. UI-engineer не создаёт нативные `<button>` или собственные стилизованные кнопки в продуктовом коде.
 
 ## 6. Лимиты и эскалации
 
-- **Эскалация к Project Lead:** объём v1.0/v1.1, конфликт принципов, новый публичный контракт плагина (manifest, разрешения), решение «откладываем в v1.1».
+- **Эскалация к Product Owner:** объём v1.0/v1.1, конфликт принципов, новый публичный контракт плагина (`manifest.json`, разрешения), решение «откладываем в v1.1».
 - **Запрещённые данные:** Google API key (`google-api-key` в `clientStorage`), любые секреты, содержимое реальных Figma-файлов клиентов вне обезличенных тестовых сценариев.
-- **`git push` / `figma plugin publish`:** только с явным «✅ публикуем» от Project Lead.
+- **`git push` / `figma plugin publish`:** только с явным «✅ публикуем» от Product Owner.
 - **`force-push`:** только на feature-ветку, только с явным разрешением. На `origin/main` — никогда.
 
 ## 7. Среды исполнения
 
 | Кто | Где работает физически |
 |---|---|
-| `backend`, `frontend`, `designer`, `devops` | Claude Code в терминале / VS Code |
-| `architect` | Claude Code (читает код локально) |
-| `qa` | Claude Code (читает логи из `logs/` через Filesystem) + Figma MCP (read-only к Figma-файлам, когда подключён) |
-| `project-lead`, `doc-writer`, `analytics` | Claude.ai чат с Project Files (стратегический уровень) |
+| `@backend`, `@ui-engineer`, `@release-scribe` | Claude Code в терминале / VS Code |
+| `@lead-architect` | Claude Code (читает код локально) |
+| `@qa` | Claude Code (читает логи из `logs/` через Filesystem) + Figma MCP (read-only к Figma-файлам, когда подключён) |
