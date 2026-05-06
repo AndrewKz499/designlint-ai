@@ -68,7 +68,6 @@ export function ReviewFix({ violations, onBack, onFixApplied, onSettingsClick, m
           next.add(msg.data.nodeId);
           return next;
         });
-        if (onFixApplied) onFixApplied(msg.data.nodeId);
 
         const nodeId = msg.data.nodeId;
         const cachedAfter = afterCacheRef.current.get(nodeId);
