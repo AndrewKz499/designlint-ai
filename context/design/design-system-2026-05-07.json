@@ -1,0 +1,94 @@
+{
+  "source": {
+    "figmaUrl": "https://www.figma.com/design/gmmTIveN5SSffzVz6AzLpu/DesignLint-Test?node-id=148-12826&t=9KJnawCW1iX1R1i6-4",
+    "fileKey": "gmmTIveN5SSffzVz6AzLpu",
+    "fileName": "DesignLint-Test",
+    "rootNodeId": "148:12826",
+    "rootNodeName": "Design Systems",
+    "exportedAt": "2026-05-07T18:24:40.231Z"
+  },
+  "pages": [
+    { "id": "92:238", "name": "DS", "childCount": 1 },
+    { "id": "0:1", "name": "Design", "childCount": 2 }
+  ],
+  "variables": {
+    "collections": [],
+    "note": "No local Figma variables were found in the file."
+  },
+  "tokens": {
+    "colors": {
+      "Bg":           { "id": "S:0c6317e9ad9c0b3e767ca2a0c37002ad4ab2df9c,", "key": "0c6317e9ad9c0b3e767ca2a0c37002ad4ab2df9c", "value": "#F4F5F5" },
+      "Content":      { "id": "S:fd56aa86d7c3187ba74f97f3187c60c2b84f9b98,", "key": "fd56aa86d7c3187ba74f97f3187c60c2b84f9b98", "value": "#33332D" },
+      "Gray":         { "id": "S:45d5af7b67af947a77b2ba6e1ac51c84cdf6bf51,", "key": "45d5af7b67af947a77b2ba6e1ac51c84cdf6bf51", "value": "#D9D9D9" },
+      "White":        { "id": "S:2b5bc572d8b0455a69fee4a3f9112d8c2043a783,", "key": "2b5bc572d8b0455a69fee4a3f9112d8c2043a783", "value": "#FFFFFF" },
+      "Gray 2":       { "id": "S:a36a7cfb95244d62444266748151e860c0902bd8,", "key": "a36a7cfb95244d62444266748151e860c0902bd8", "value": "#B3B3B3" },
+      "Blue":         { "id": "S:2cb60273baafa7aec5dcd2dfc70ad84950823f9a,", "key": "2cb60273baafa7aec5dcd2dfc70ad84950823f9a", "value": "#002BFF" },
+      "Tags":         { "id": "S:c7a30c1558fbd38cb9d745037e21334e569e91bf,", "key": "c7a30c1558fbd38cb9d745037e21334e569e91bf", "value": "#4A4A4A" },
+      "Error Border": { "id": "S:9c67b7f23ce4ba4369e5ece39d3df6f393eb1e7a,", "key": "9c67b7f23ce4ba4369e5ece39d3df6f393eb1e7a", "value": "#D50000" },
+      "Error Fill":   { "id": "S:396eafa9119e612aa9540881be4f46be4d0195b5,", "key": "396eafa9119e612aa9540881be4f46be4d0195b5", "value": "#FFCDCD" }
+    },
+    "typography": {
+      "H1":        { "id": "S:15f6653d0f6813ae06a26061d87ac4def8500de7,", "key": "15f6653d0f6813ae06a26061d87ac4def8500de7", "fontFamily": "Inter",       "fontStyle": "Bold",      "fontSize": 40, "lineHeight": { "unit": "PIXELS", "value": 44 }, "letterSpacing": { "unit": "PIXELS", "value": 0 } },
+      "H2":        { "id": "S:6173f7172cdf594ae57a2cafa1d189104672ce84,", "key": "6173f7172cdf594ae57a2cafa1d189104672ce84", "fontFamily": "Inter",       "fontStyle": "Bold",      "fontSize": 36, "lineHeight": { "unit": "PIXELS", "value": 40 }, "letterSpacing": { "unit": "PIXELS", "value": 0 } },
+      "H3":        { "id": "S:fa753eac5660041d5aa4f983f8920f73e46ef65b,", "key": "fa753eac5660041d5aa4f983f8920f73e46ef65b", "fontFamily": "Inter",       "fontStyle": "Semi Bold", "fontSize": 24, "lineHeight": { "unit": "PIXELS", "value": 32 }, "letterSpacing": { "unit": "PIXELS", "value": 0 } },
+      "H4":        { "id": "S:0f8e83916a11a369d07db29de625e5acb34ddc0b,", "key": "0f8e83916a11a369d07db29de625e5acb34ddc0b", "fontFamily": "Inter",       "fontStyle": "Semi Bold", "fontSize": 20, "lineHeight": { "unit": "PIXELS", "value": 24 }, "letterSpacing": { "unit": "PIXELS", "value": 0 } },
+      "H5":        { "id": "S:7338251b82f433a5cab3b806e28c77d1aa3d5571,", "key": "7338251b82f433a5cab3b806e28c77d1aa3d5571", "fontFamily": "Inter",       "fontStyle": "Semi Bold", "fontSize": 18, "lineHeight": { "unit": "PIXELS", "value": 20 }, "letterSpacing": { "unit": "PIXELS", "value": 0 } },
+      "Body":      { "id": "S:acf14bbed22bde350ddb6c7598e705c3c535a6d6,", "key": "acf14bbed22bde350ddb6c7598e705c3c535a6d6", "fontFamily": "Inter",       "fontStyle": "Regular",   "fontSize": 16, "lineHeight": { "unit": "PIXELS", "value": 20 }, "letterSpacing": { "unit": "PIXELS", "value": 0 } },
+      "Body bold": { "id": "S:f57c908dc008d344df79ff2cbc969793f1074694,", "key": "f57c908dc008d344df79ff2cbc969793f1074694", "fontFamily": "Inter",       "fontStyle": "Semi Bold", "fontSize": 16, "lineHeight": { "unit": "PIXELS", "value": 20 }, "letterSpacing": { "unit": "PIXELS", "value": 0 } },
+      "Tooltip":   { "id": "S:59e2d1f8385dce9fb14d797dff71c4ed3733cc49,", "key": "59e2d1f8385dce9fb14d797dff71c4ed3733cc49", "fontFamily": "Roboto Mono", "fontStyle": "Regular",   "fontSize": 16, "lineHeight": { "unit": "PIXELS", "value": 20 }, "letterSpacing": { "unit": "PERCENT", "value": 0 } }
+    },
+    "effects": {
+      "Shadow": {
+        "id": "S:aeb5e3a5bb2245d448f8d7242c5a3d7ebf0d9df3,",
+        "key": "aeb5e3a5bb2245d448f8d7242c5a3d7ebf0d9df3",
+        "type": "DROP_SHADOW",
+        "color": "#00000026",
+        "offset": { "x": 0, "y": 6 },
+        "radius": 10,
+        "spread": 0,
+        "blendMode": "NORMAL"
+      }
+    },
+    "grids": {}
+  },
+  "components": {
+    "sets": [
+      { "name": "Checkbox",    "id": "148:11782", "key": "160b8dbd2edadbd254fd6f6e00314bc942efc970", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "on",         "variantOptions": ["off", "on"] } },                                                       "variants": [{ "name": "Property 1=on",  "id": "148:11781", "key": "64832a80eeebd03506a7effe6d3dcf13cf0dbbf8", "props": { "Property 1": "on" } }, { "name": "Property 1=off", "id": "148:11780", "key": "472913b56f4988d7ffe50e617409b7193c9b5498", "props": { "Property 1": "off" } }] },
+      { "name": "Switch",      "id": "148:11858", "key": "3bcafef29cfc23874705f801d27e9b459467b9ed", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Checked",    "variantOptions": ["Disabledlt_Uncheck", "Checked", "Unchecked", "Disabled_Check"] } }, "variants": [{ "name": "Property 1=Disabled_Check",     "id": "148:11855", "key": "77e220c05966a088b8e3af2234fa266f2f31426a", "props": { "Property 1": "Disabled_Check" } }, { "name": "Property 1=Checked",          "id": "148:11854", "key": "6628e49d7172a68076b560e79ebbe5ff2055be3f", "props": { "Property 1": "Checked" } }, { "name": "Property 1=Unchecked",        "id": "148:11856", "key": "0e2872a79ab5ac315f3866ee877dfd1f6c4a89fa", "props": { "Property 1": "Unchecked" } }, { "name": "Property 1=Disabledlt_Uncheck", "id": "148:11857", "key": "97de81e65962ba50bb11dc039ef6211761ce9f71", "props": { "Property 1": "Disabledlt_Uncheck" } }] },
+      { "name": "Button_XL",   "id": "148:11974", "key": "e528f282ca154a91d21a495d67f3403c6199471e", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Btn_icon",   "variantOptions": ["Btn", "Btn_icon", "Btn_Second", "Disabled"] } },                       "variants": [{ "name": "Property 1=Btn_icon",          "id": "148:11922", "key": "7e0ae3f3502dab6e77d128cb7a23e70e98e8bc57", "props": { "Property 1": "Btn_icon" } }, { "name": "Property 1=Btn",              "id": "148:11973", "key": "4ce7298b983c92089bf7d751c74779bc8b7948d6", "props": { "Property 1": "Btn" } }, { "name": "Property 1=Btn_Second",       "id": "148:11978", "key": "10aab4534e1de93893932aac6ef74f0f28c99f26", "props": { "Property 1": "Btn_Second" } }, { "name": "Property 1=Disabled",          "id": "148:13103", "key": "57c0cc5eda971d2be40c42e18088b00a5d6b208e", "props": { "Property 1": "Disabled" } }] },
+      { "name": "Button_L",    "id": "148:11981", "key": "209c56bbdbd3fc595a6f658c8cfb9960fb2c7a12", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Btn",        "variantOptions": ["Btn", "Btn_Second"] } },                                              "variants": [{ "name": "Property 1=Btn",               "id": "148:11986", "key": "585655a2dcd6021cab8de7a1466632b030cb2545", "props": { "Property 1": "Btn" } }, { "name": "Property 1=Btn_Second",       "id": "148:11989", "key": "827f0e2f7355c4b8f198574ea93936ea68cbd991", "props": { "Property 1": "Btn_Second" } }] },
+      { "name": "Tags",        "id": "148:12034", "key": "18a1df681468d35479b23bf237521b21cd96c20c", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Tag_Active", "variantOptions": ["Tag_Active", "Tag_Disable"] } },                                       "variants": [{ "name": "Property 1=Tag_Active",        "id": "148:12027", "key": "276f8b9488002fdc743807363835f5cb03fa7da5", "props": { "Property 1": "Tag_Active" } }, { "name": "Property 1=Tag_Disable",     "id": "148:12033", "key": "fef41fdf1f9c571e3f9e15a8bfd872acaa6ac2bc", "props": { "Property 1": "Tag_Disable" } }] },
+      { "name": "Input",       "id": "148:13125", "key": "9033988305c6fc89ba77bd4897bfb7ae8222177f", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Disabled",   "variantOptions": ["Active", "Disabled", "Default"] } },                                  "variants": [{ "name": "Property 1=Disabled",          "id": "148:11883", "key": "fd02e33c6a9ecda31865da1700ba8ec9b563ec14", "props": { "Property 1": "Disabled" } }, { "name": "Property 1=Active",           "id": "148:13124", "key": "b83e51ba809a3d19cc0e348027132fa35a411d0a", "props": { "Property 1": "Active" } }, { "name": "Property 1=Default",          "id": "162:258",   "key": "016d0c4bc2ec2eb4a3e5cad4d1f7e1dec6dea578", "props": { "Property 1": "Default" } }] },
+      { "name": "Loader",      "id": "162:336",   "key": "6d9007bb2e2c6126a42f32b7c6f32ed3766461c9", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Progress",   "variantOptions": ["Progress", "Stop"] } },                                                "variants": [{ "name": "Property 1=Progress",          "id": "162:295",   "key": "075b9f13af00b27f0479ca49eef53d6853896230", "props": { "Property 1": "Progress" } }, { "name": "Property 1=Stop",             "id": "162:335",   "key": "23bed9d41e926b6e0b90452f59e1a9b7342a8e43", "props": { "Property 1": "Stop" } }] },
+      { "name": "Component 1", "id": "204:209",   "key": "6346d01723fd970e7d58c7f49a3ebf72d5389d6c", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Settings",   "variantOptions": ["Home", "Settings"] } },                                                "variants": [{ "name": "Property 1=Settings",          "id": "148:11717", "key": "c9e194e1f46f66e638b3646531d9153255e4467d", "props": { "Property 1": "Settings" } }, { "name": "Property 1=Home",             "id": "204:208",   "key": "20c7962cce08d9ec6ce1c002692145ea6af7b29c", "props": { "Property 1": "Home" } }] },
+      { "name": "Radio",       "id": "204:462",   "key": "e4138147365de2feffa515070ebaf4587064a65d", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Check",      "variantOptions": ["No", "Check"] } },                                                    "variants": [{ "name": "Property 1=Check",             "id": "204:460",   "key": "3549fa7787946dc970b098ebe81d3f25999ee5c5", "props": { "Property 1": "Check" } }, { "name": "Property 1=No",                "id": "204:461",   "key": "2dc27f27907ed3a3ecb417767cc668d71788a3e9", "props": { "Property 1": "No" } }] },
+      { "name": "Chevron",     "id": "207:610",   "key": "60a0e0c9880735ffdbb10fb238cdf95eb0e13437", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Down",       "variantOptions": ["Down", "Up"] } },                                                     "variants": [{ "name": "Property 1=Down",              "id": "148:11746", "key": "1495e0a7eebfec43c2b21a766140fbecf0b1efe4", "props": { "Property 1": "Down" } }, { "name": "Property 1=Up",                "id": "207:609",   "key": "a5cbd6a790c917f122471636629bcae0b79c32eb", "props": { "Property 1": "Up" } }] },
+      { "name": "Drobdown",    "id": "207:612",   "key": "921991de80f87c8a2b4a13fc6cf75199489aee43", "page": "DS", "properties": { "Property 1": { "type": "VARIANT", "defaultValue": "Close",      "variantOptions": ["Close", "Open"] } },                                                  "variants": [{ "name": "Property 1=Close",             "id": "148:11752", "key": "cb0055e91b35e88588857218cd49fd0f4c111a29", "props": { "Property 1": "Close" } }, { "name": "Property 1=Open",              "id": "207:583",   "key": "252d805f5a855fb4f493be8305e05fa2d1607cbb", "props": { "Property 1": "Open" } }] }
+    ],
+    "standalone": [
+      { "name": "Rectangle 2",  "id": "148:11700", "key": "6953a1d2aa5afd59d8a7819d6b74fa1ee5755bf9", "page": "DS", "properties": {} },
+      { "name": "Lable_icons",  "id": "148:12607", "key": "1e66b93a790e35e7cadbd0bb4e76de809255177e", "page": "DS", "properties": {} },
+      { "name": "Lable",        "id": "148:12615", "key": "499d94639f3ff38ec5e740107f8c2e4dce6795c2", "page": "DS", "properties": {} },
+      { "name": "Info",         "id": "148:11758", "key": "4432b3330cbd704d0715fb54161d31e0c2744450", "page": "DS", "properties": {} },
+      { "name": "Ai",           "id": "148:11918", "key": "718eefe5432b0484bf7a35934e34d3c8fa381bdc", "page": "DS", "properties": {} },
+      { "name": "Pagination",   "id": "91:1897",   "key": "5cd8f366eaa83cb2dddd14e10e6487df32c80b6e", "page": "DS", "properties": {} },
+      { "name": "Edit 3",       "id": "148:12073", "key": "090d8d9d4f656dd9be527a6c790610254dc65810", "page": "DS", "properties": {} },
+      { "name": "Frame 52",     "id": "148:12768", "key": "bdba6e7d887bf8e78ea33293155bbe3cb7a64440", "page": "DS", "properties": {} },
+      { "name": "Error",        "id": "162:313",   "key": "6937d521946267496d9c6631041dd856419bf1e4", "page": "DS", "properties": {} },
+      { "name": "CircleSpiner", "id": "186:720",   "key": "78bbdc611dcce384a43cd66fa179b14377451ac7", "page": "DS", "properties": {} },
+      { "name": "Scan",         "id": "186:726",   "key": "e4922761697a747bfd90d6f98bfca9543f1db423", "page": "DS", "properties": {} },
+      { "name": "ListRadio",    "id": "204:470",   "key": "66ab6b3ec0e93e0db3222dc6f79cd233ca0a193e", "page": "DS", "properties": {} }
+    ]
+  },
+  "counts": {
+    "pages": 2,
+    "variableCollections": 0,
+    "variables": 0,
+    "colorStyles": 9,
+    "textStyles": 8,
+    "effectStyles": 1,
+    "gridStyles": 0,
+    "componentSets": 11,
+    "standaloneComponents": 12
+  }
+}
