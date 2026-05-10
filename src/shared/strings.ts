@@ -79,6 +79,14 @@ export const UI = {
   dashAreasTitle:   'Audit areas',
   dashScoreLabel:   'Layout score',
   dashContextBadge: (name: string, count: number) => `Scanned: ${name} · ${count} elements`,
+  /**
+   * Ф.18a (шаг 18.11): вторая строка sub-line на Dashboard, когда скан был
+   * запущен с эталоном (example !== null на момент start-scan). Показывает
+   * имя эталона прошлого скана независимо от текущего состояния чипа в Header
+   * (см. App.tsx → lastScanExample). Намеренное дублирование чипа: «прошлый
+   * скан был с этим эталоном», тогда как чип в Header — «текущий эталон».
+   */
+  dashVsExample:    (name: string) => `vs example "${name}"`,
   dashAiFixAll:     '✨ Fix all with AI',
   dashFixAll:       'Fix all',
   dashReviewOne:    'Review one by one',
@@ -148,7 +156,7 @@ export const UI = {
   // ─── Spinner.tsx ─────────────────────────────────────────────────────────
   spinnerLoading:         'Loading',
 
-  // ─── ScanDesignSystem.tsx ────────────────────────────────────────────────
+  // ─── Home.tsx ────────────────────────────────────────────────────────────
   sdSourcesTitle:         'Design System sources',
   sdScanSelected:         'Scan selected',
   sdSkip:                 'Skip',
@@ -161,7 +169,7 @@ export const UI = {
   sdRunAudit:             'Run audit',
   sdRescan:               'Rescan',
 
-  // ─── ReviewFix.tsx ───────────────────────────────────────────────────────
+  // ─── ReportView.tsx ──────────────────────────────────────────────────────
   errorAiGeneric:         "Couldn't get an explanation.",
   errorAiInvalidKey:      'Invalid API key. Check Settings.',
   errorAiRateLimit:       'Rate limit exceeded. Please try again later.',
@@ -175,4 +183,57 @@ export const UI = {
   openSettings:           'Open settings',
   thinkingExplanation:    'Thinking…',
   tryAgain:               'Try again',
+
+  // ─── Library content (Ф.16.6.5 single-select) ────────────────────────────
+  connectedLibraryLabel:    'Connected library',
+  localLibraryLabel:        'Local library',
+  /** {name} — placeholder for library name. Used in figma.notify on permission loss. */
+  libraryUnavailable:       (name: string) => `Library "${name}" is unavailable. Switched to Local.`,
+  noConnectedLibrariesHint: 'No connected libraries in this file',
+  connectedLibraryAria:     'Use a connected library as the source of design tokens',
+  localLibraryAria:         'Use local Variables and Styles as the source of design tokens',
+  libraryDropdownAria:      'Select a connected library',
+  /**
+   * Optional badge for ReportView. Phase Ф.16.6.5 PO решение — убрать в v1.0.
+   * Строка оставлена ради v1.1, если PO передумает.
+   */
+  libraryFromBadge:         (libraryName: string) => `from ${libraryName}`,
+
+  // ─── VerificationExample.tsx (Ф.18a, шаг 18.6) ───────────────────────────
+  // Названия ключей по паттерну `verExample.*` (отдельный namespace экрана,
+  // как `sd*` для design-system Home). EN-only, как и весь strings.ts на момент Ф.18a.
+  verExampleTitle:           'Verification example',
+  verExampleTabSelection:    'Selection',
+  verExampleTabSection:      'Section',
+  verExampleTabComponent:    'Component',
+  verExampleTabLayout:       'Layout',
+  /** Заглушка пустого состояния под табами (нет выбранного эталона, нет ошибки, не идёт парсинг). */
+  verExampleEmpty:           'Select a node on the canvas, then pick a mode above to parse the example.',
+  /** Сообщение во время парсинга. parse-example-progress в Ф.18a не используется (см. шаг 18.6). */
+  verExampleParsing:         'Parsing example…',
+  /** Заглушка для таба Layout — парсинг отложен до Ф.18b. */
+  verExampleLayoutComingSoon: 'Layout parsing is coming in the next iteration.',
+  /** Чип эталона в populated-state. {name} — имя выбранного узла (Example.name). */
+  verExampleChip:            (name: string) => `Example: ${name}`,
+  /** Заголовок раздела со слотами в populated-state. */
+  verExampleSlotsTitle:      'Tokens used in this example',
+  /** Подписи групп слотов. {n} — количество слотов в группе (берётся из example.slots). */
+  verExampleSlotsFill:       (n: number) => `Colors: ${n}`,
+  verExampleSlotsTextStyle:  (n: number) => `Text styles: ${n}`,
+  verExampleSlotsSpacing:    (n: number) => `Spacing: ${n}`,
+  verExampleSlotsRadius:     (n: number) => `Radius: ${n}`,
+  /** CTA — primary, переходит к скану. */
+  verExampleConfirm:         'Scan example',
+  /** CTA — secondary, пропускает выбор эталона. */
+  verExampleSkip:            'Skip',
+  /** Disabled-кнопка по риску B (см. F18a-verification-example-step.md, раздел 1). */
+  verExampleAddAnother:      'Add another example',
+  verExampleAddAnotherTooltip: 'Replaces current example. Multi-example coming in v1.1.',
+  /**
+   * Тексты ошибок parse-example-result (см. types.ts → PluginMessage 'parse-example-result').
+   * Три кода фиксированы шагом 18.4; UI отображает их «как есть» без сложной обработки.
+   */
+  verExampleErrorNoSelection:   'Select exactly one node on the canvas to parse the example.',
+  verExampleErrorNotPublished:  'This component requires a published library. Open the source file or publish the library, then try again.',
+  verExampleErrorNoTokensFound: 'No design tokens found in the selected node. Try a different node or mode.',
 };

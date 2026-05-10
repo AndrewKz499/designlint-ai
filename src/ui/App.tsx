@@ -1,22 +1,23 @@
 // Главный компонент UI плагина
 import { useState, useEffect } from 'react';
-import type { PluginMessage, ScanResult, DetectionResult, ScanScope, TokenSource, TokenPolicy } from '../shared/types';
-import { VIOLATION_TITLE, VIOLATION_CATEGORY, CATEGORY_META, UI } from '../shared/strings';
+import type { PluginMessage, ScanResult, DetectionResult, ScanScope, TokenSource, TokenPolicy, ReferenceSnapshot, Example, ExampleScope } from '../shared/types';
+import { VIOLATION_CATEGORY, UI } from '../shared/strings';
 import type { Category } from '../shared/strings';
-import { ScanDesignSystem } from './components/ScanDesignSystem';
-import { ReviewFix } from './components/ReviewFix';
+import { Home } from './components/Home';
+import { ReportView } from './components/ReportView';
 import { ErrorCard } from './components/ErrorCard';
-import { ScopeSelector } from './components/ScopeSelector';
+import { ReadyToScan } from './components/ReadyToScan';
+import { Dashboard } from './components/Dashboard';
 import { Header } from './components/ui/Header';
 import { Button } from './components/ui/Button';
-import { Tag } from './components/ui/Tag';
-import { Checkbox } from './components/ui/Checkbox';
 import { colors, typography, spacing } from './tokens';
 import { Settings } from './components/Settings';
 import { Spinner } from './components/ui/Spinner';
+import { VerificationExample } from './components/VerificationExample';
 
 type Status = 'idle' | 'scanning' | 'done';
-type View = 'mode0' | 'scanner' | 'review' | 'settings';
+type View = 'mode0' | 'verification-example' | 'scanner' | 'review' | 'settings';
+type ParseExampleErrorCode = 'no-selection' | 'not-published' | 'no-tokens-found';
 
 function ResizeHandle() {
   function onPointerDown(e: React.PointerEvent) {
@@ -70,13 +71,37 @@ export function App() {
   const [detection, setDetection] = useState<DetectionResult | null>(null);
   const [scope, setScope] = useState<ScanScope>('selection');
   const [selectedCategories, setSelectedCategories] = useState<Set<Category>>(new Set());
-  const [totalBefore, setTotalBefore] = useState<number | null>(null);
   const [fixedCount, setFixedCount] = useState<number>(0);
   const [aiEnabled, setAiEnabled] = useState<boolean>(true);
   const [scanErrorCode, setScanErrorCode] = useState<'no-selection' | 'no-tokens' | 'no-ai-key' | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const [tokenSource, setTokenSource] = useState<TokenSource>('variables');
   const [tokenPolicy, setTokenPolicy] = useState<TokenPolicy>('all-tokens');
+  // Ф.17.6: snapshot теперь живёт в App (single owner). Home получает его обратно
+  // как prop для рендера метрик; App пробрасывает в ReportView для AI prompt
+  // component context (Ф.17.5) и unified search (Ф.17.8). Установка снаружи —
+  // через onSnapshotReady, который Home вызывает при получении ds-scan-complete.
+  const [snapshot, setSnapshot] = useState<ReferenceSnapshot | null>(null);
+
+  // Ф.18a (шаг 18.7): локальный state эталона. clientStorage-персист — отдельный
+  // шаг 18.5 (sandbox); в 18.7 example живёт только в памяти App. После
+  // перезапуска плагина теряется — это ожидаемо для текущего шага.
+  const [example, setExample] = useState<Example | null>(null);
+  const [parseExampleLoading, setParseExampleLoading] = useState<boolean>(false);
+  const [parseExampleErrorCode, setParseExampleErrorCode] =
+    useState<ParseExampleErrorCode | null>(null);
+  // Ф.18a (шаг 18.10): флаг «использовать ли example при следующем скане».
+  // Confirm → true, Skip → false. Решение хранится отдельно от самого example,
+  // чтобы Skip не сбрасывал выбранный эталон в state — пользователь может
+  // передумать и пересканировать с эталоном без повторного выбора.
+  const [useExampleOnNextScan, setUseExampleOnNextScan] = useState<boolean>(false);
+  // Ф.18a (шаг 18.11): snapshot эталона на момент последнего скана.
+  // Отделён от `example` (текущий выбранный эталон), чтобы Dashboard мог
+  // показывать «vs example "…"» как условия прошлого скана даже после того,
+  // как пользователь снял чип ✕ в Header (clear-example не сбрасывает этот
+  // snapshot — обновляется только в handleStartScan). null до первого скана
+  // и для скана-без-эталона (Skip).
+  const [lastScanExample, setLastScanExample] = useState<Example | null>(null);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -89,18 +114,27 @@ export function App() {
         setResult(msg.data);
         setStatus('done');
       } else if (msg.type === 'detection-complete') {
-        setDetection(msg.data);
-        // Инициализация только при ПЕРВОМ detection в сессии — иначе после Fix
-        // selectedCategories затрёт ручно снятые пользователем галки.
-        if (totalBefore === null) {
-          setTotalBefore(msg.data.violations.length);
-          setFixedCount(0);
-          const cats = new Set<Category>();
-          for (let i = 0; i < msg.data.violations.length; i++) {
-            cats.add(VIOLATION_CATEGORY[msg.data.violations[i].type]);
+        // TEMP: remove in Ф.16.7
+        console.log('[BUG-FIX-DEBUG] sample violation from detection', JSON.stringify(
+          msg.data.violations[0],
+          null,
+          2
+        ));
+        // Инициализация selectedCategories только при ПЕРВОМ detection в сессии —
+        // иначе после применения Fix новый detection-complete затрёт ручно снятые
+        // пользователем галки. Триггер «первого detection» — detection === null
+        // (handleReset сбрасывает его в null перед новым сканом).
+        setDetection((prev) => {
+          if (prev === null) {
+            setFixedCount(0);
+            const cats = new Set<Category>();
+            for (let i = 0; i < msg.data.violations.length; i++) {
+              cats.add(VIOLATION_CATEGORY[msg.data.violations[i].type]);
+            }
+            setSelectedCategories(cats);
           }
-          setSelectedCategories(cats);
-        }
+          return msg.data;
+        });
       } else if (msg.type === 'ai-enabled-response') {
         setAiEnabled(msg.data.enabled);
       } else if (msg.type === 'scan-error') {
@@ -113,27 +147,92 @@ export function App() {
         setHasApiKey(true);
       } else if (msg.type === 'fix-complete' && msg.data.success === true) {
         handleFixApplied(msg.data.nodeId);
+      } else if (msg.type === 'parse-example-result') {
+        // Ф.18a (шаг 18.7): результат парсинга эталона из sandbox.
+        // - success → example !== null, error не задан;
+        // - error   → example === null, error содержит код.
+        // parse-example-progress в Ф.18a не используется (статичный «Parsing…»
+        // в VerificationExample, см. шаг 18.6).
+        setParseExampleLoading(false);
+        if (msg.data.example !== null) {
+          setExample(msg.data.example);
+          setParseExampleErrorCode(null);
+        } else {
+          setExample(null);
+          setParseExampleErrorCode(msg.data.error ?? 'no-tokens-found');
+        }
+      } else if (msg.type === 'example-loaded') {
+        // Подтверждение clear-example от sandbox (или ответ get-example в 18.5+).
+        // В 18.7 шлём clear-example только при ✕ на чипе — обновляем state.
+        setExample(msg.data.example);
+        setParseExampleErrorCode(null);
       }
     };
 
     window.addEventListener('message', handler);
     parent.postMessage({ pluginMessage: { type: 'get-ai-enabled' } }, '*');
     parent.postMessage({ pluginMessage: { type: 'get-api-key' } }, '*');
+    // Ф.18a (шаг 18.5): запрос persisted example. В 18.7 эта строка отсутствовала,
+    // из-за чего после перезапуска плагина чип «Example: …» терялся, хотя
+    // sandbox теперь сохраняет эталон в clientStorage. Sandbox валидирует
+    // nodeId и возвращает null, если узел удалён.
+    parent.postMessage({ pluginMessage: { type: 'get-example' } }, '*');
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  // Mode 0 завершён — переходим на Экран 2 (Audit areas), скан запускается
-  // отдельно по кнопке Scan file через handleStartScan
+  // Mode 0 завершён — Ф.18a (шаг 18.7): переходим на VerificationExample,
+  // а не сразу на scanner. Скан запустится после Confirm/Skip с экрана эталона
+  // (см. handleVerificationExampleConfirm / handleVerificationExampleSkip).
+  // Поведение и порядок сбросов state сохранены — они нужны для последующего
+  // экрана scanner с чистым idle-состоянием.
   const handleMode0Complete = (source: TokenSource, policy: TokenPolicy) => {
     setTokenSource(source);
     setTokenPolicy(policy);
-    setCurrentView('scanner');
+    setCurrentView('verification-example');
     setStatus('idle');           // было 'scanning' — теперь idle, чтобы показался Экран 2 (Audit areas)
     setProgress(null);
     setResult(null);
     setDetection(null);
     setScanErrorCode(null);      // на всякий случай сбросить, если был старый ErrorCard
+    // Сбрасываем error эталона при заходе с Mode 0 — не показывать остатки
+    // прошлой сессии. Сам example НЕ сбрасываем: пользователь мог уже выбрать
+    // его и просто вернуться через Home, чтобы поправить tokenSource.
+    setParseExampleErrorCode(null);
+    setParseExampleLoading(false);
     // НЕ слать start-scan здесь — это делает handleStartScan по кнопке Scan file на Экране 2
+  };
+
+  // ─── Ф.18a: handlers экрана VerificationExample (шаг 18.7) ────────────
+  const handleVerificationExampleScopeSelected = (scope: ExampleScope) => {
+    setParseExampleLoading(true);
+    setParseExampleErrorCode(null);
+    sendMessage({ type: 'parse-example', data: { scope } });
+  };
+
+  // Общий handler очистки эталона. Используется и из VerificationExample
+  // (✕ на чипе внутри компонента), и из Header (✕ на чипе под заголовком,
+  // шаг 18.8). Sandbox по получении clear-example удаляет персистентный
+  // example и отвечает example-loaded({example: null}) — обработка симметрична.
+  const handleClearExample = () => {
+    setExample(null);
+    setParseExampleErrorCode(null);
+    sendMessage({ type: 'clear-example' });
+  };
+
+  // Confirm/Skip — общая логика: переход на scanner в idle. Скан запустится
+  // отдельно по кнопке Scan file через handleStartScan (как и до Ф.18a).
+  // Ф.18a (шаг 18.10): различие confirm vs skip — в значении флага
+  // `useExampleOnNextScan`. Confirm → true (детектор получит example как
+  // priority override). Skip → false (детектор работает по старой логике,
+  // даже если example в state остался от прошлой сессии). Сам example в
+  // state при Skip НЕ сбрасываем — пользователь может вернуться и подтвердить.
+  const handleVerificationExampleConfirm = () => {
+    setUseExampleOnNextScan(true);
+    setCurrentView('scanner');
+  };
+  const handleVerificationExampleSkip = () => {
+    setUseExampleOnNextScan(false);
+    setCurrentView('scanner');
   };
 
   const handleStartScan = () => {
@@ -141,7 +240,19 @@ export function App() {
     setProgress(null);
     setResult(null);
     setDetection(null);
-    sendMessage({ type: 'start-scan', data: { scope, tokenSource, tokenPolicy } });
+    // Ф.18a (шаг 18.10): передаём example в sandbox только если пользователь
+    // подтвердил выбор через Confirm. На Skip отправляем null, чтобы детектор
+    // не использовал эталон. См. types.ts → 'start-scan'.
+    const exampleForScan: Example | null =
+      useExampleOnNextScan && example !== null ? example : null;
+    // Ф.18a (шаг 18.11): фиксируем snapshot эталона прошлого скана для
+    // Dashboard sub-line «vs example …». Обновляется только здесь —
+    // последующий clear-example не должен затирать условия прошлого скана.
+    setLastScanExample(exampleForScan);
+    sendMessage({
+      type: 'start-scan',
+      data: { scope, tokenSource, tokenPolicy, example: exampleForScan },
+    });
   };
 
   const handleReset = () => {
@@ -149,12 +260,16 @@ export function App() {
     setResult(null);
     setDetection(null);
     setProgress(null);
-    setTotalBefore(null);
     setFixedCount(0);
+    setScanErrorCode(null);
+    setCurrentView('scanner');
   };
 
-  // Возврат к Mode 0 (настройка дизайн-системы)
-  const handleGoToMode0 = () => {
+  // Навигация на Home (mode0) БЕЗ сброса state — отличается от handleReset.
+  // Сохраняет detection / scope / selectedCategories / result / fixedCount /
+  // scanErrorCode. Используется home-иконкой Header на Ready-to-scan и
+  // (после Ф.16.5) на ReportView.
+  const handleNavigateHome = () => {
     setCurrentView('mode0');
   };
 
@@ -206,7 +321,11 @@ export function App() {
   if (currentView === 'settings') {
     return (
       <div style={styles.root}>
-        <Header />
+        <Header
+          example={example}
+          showExampleChip={true}
+          onClearExample={handleClearExample}
+        />
         <Settings onBack={() => setCurrentView('scanner')} />
         <ResizeHandle />
       </div>
@@ -214,10 +333,37 @@ export function App() {
   }
 
   if (currentView === 'mode0') {
+    // Шаг 18.8: на Home чип эталона НЕ рендерим (showExampleChip=false),
+    // даже если example задан. Пользователь только начинает работу — чип
+    // отвлекал бы от выбора library/source/policy.
     return (
       <div style={styles.root}>
-        <Header onSettingsClick={() => setCurrentView('settings')} />
-        <ScanDesignSystem onComplete={handleMode0Complete} />
+        <Header icon="gear" onIconClick={() => setCurrentView('settings')} />
+        <Home
+          onComplete={handleMode0Complete}
+          snapshot={snapshot}
+          onSnapshotReady={setSnapshot}
+        />
+        <ResizeHandle />
+      </div>
+    );
+  }
+
+  if (currentView === 'verification-example') {
+    // Шаг 18.8: на VerificationExample чип в Header НЕ рендерим — у компонента
+    // свой чип внутри. Дублировать = двойной чип.
+    return (
+      <div style={styles.root}>
+        <Header icon="home" onIconClick={handleNavigateHome} />
+        <VerificationExample
+          example={example}
+          onScopeSelected={handleVerificationExampleScopeSelected}
+          onClearExample={handleClearExample /* чип внутри VerificationExample */}
+          onConfirm={handleVerificationExampleConfirm}
+          onSkip={handleVerificationExampleSkip}
+          isLoading={parseExampleLoading}
+          errorCode={parseExampleErrorCode}
+        />
         <ResizeHandle />
       </div>
     );
@@ -226,20 +372,28 @@ export function App() {
   // Режим Review & Fix — пошаговое исправление нарушений
   if (currentView === 'review') {
     return (
-      <ReviewFix
+      <ReportView
         violations={filteredViolations}
         onBack={handleBackToDashboard}
-        onFixApplied={handleFixApplied}
-        onSettingsClick={() => setCurrentView('settings')}
+        onNavigateHome={handleNavigateHome}
+        onOpenSettings={() => setCurrentView('settings')}
         metrics={{
           fixedCount,
-          totalBefore: totalBefore ?? (detection?.violations.length ?? 0),
+          // Derived snapshot: filteredViolations — это остаток в фильтре
+          // (после применения Fix исправленные удалены из detection.violations
+          // и учтены в fixedCount). Сумма даёт исходное число нарушений
+          // в выбранном пользователем фильтре selectedCategories.
+          totalBefore: filteredViolations.length + fixedCount,
           scopeLabel: result?.scopeLabel ?? '',
         }}
         onCheckAgain={handleReset}
         onClearMarkers={() => sendMessage({ type: 'clear-markers' })}
         aiEnabled={aiEnabled}
         hasApiKey={hasApiKey}
+        snapshot={snapshot}
+        result={result}
+        example={example}
+        onClearExample={handleClearExample}
       />
     );
   }
@@ -247,7 +401,13 @@ export function App() {
   // currentView === 'scanner'
   return (
     <div style={styles.root}>
-      <Header onSettingsClick={handleGoToMode0} />
+      <Header
+        icon="home"
+        onIconClick={handleNavigateHome}
+        example={example}
+        showExampleChip={true}
+        onClearExample={handleClearExample}
+      />
 
       {scanErrorCode === 'no-selection' && (
         <div style={{ marginTop: 'auto' }}>
@@ -275,7 +435,7 @@ export function App() {
         <>
           <p style={styles.hint}>{UI.scanReady}</p>
           <div style={{ marginTop: 8, marginBottom: 8 }}>
-            <ScopeSelector value={scope} onChange={setScope} />
+            <ReadyToScan value={scope} onChange={setScope} />
           </div>
           <Button onClick={handleStartScan}>{UI.scanFile}</Button>
         </>
@@ -296,121 +456,18 @@ export function App() {
       )}
 
       {!scanErrorCode && status === 'done' && detection !== null && (
-        <>
-          <div style={{
-            fontFamily: typography.h3.fontFamily,
-            fontWeight: typography.h3.fontWeight,
-            fontSize: typography.h3.fontSize,
-            lineHeight: typography.h3.lineHeight,
-            letterSpacing: typography.h3.letterSpacing,
-            color: colors.content,
-            marginBottom: spacing.s200,
-          }}>
-            {UI.dashAreasTitle}
-          </div>
-          {result && (
-            <div style={{ marginBottom: spacing.s400 }}>
-              <Tag>{UI.dashContextBadge(result.scopeLabel, result.totalNodesScanned)}</Tag>
-            </div>
-          )}
-
-          {detection.violations.length > 0 && (
-            <div style={{ marginBottom: spacing.s300 }}>
-              {((): React.ReactNode => {
-                // Группировка всех нарушений — основа списка чекбоксов
-                const allGrouped: Partial<Record<Category, typeof detection.violations>> = {};
-                for (let i = 0; i < detection.violations.length; i++) {
-                  const v = detection.violations[i];
-                  const cat = VIOLATION_CATEGORY[v.type];
-                  if (!allGrouped[cat]) allGrouped[cat] = [];
-                  allGrouped[cat]!.push(v);
-                }
-                // Группировка отфильтрованных — для счётчиков рядом с чекбоксом
-                const filteredGrouped: Partial<Record<Category, typeof detection.violations>> = {};
-                for (let i = 0; i < filteredViolations.length; i++) {
-                  const v = filteredViolations[i];
-                  const cat = VIOLATION_CATEGORY[v.type];
-                  if (!filteredGrouped[cat]) filteredGrouped[cat] = [];
-                  filteredGrouped[cat]!.push(v);
-                }
-                return (Object.keys(allGrouped) as Category[]).map((cat) => {
-                  const items = allGrouped[cat]!;
-                  const filteredCount = (filteredGrouped[cat] || []).length;
-                  const isSelected = selectedCategories.has(cat);
-                  return (
-                    <div key={cat} style={{ marginBottom: spacing.s200 }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: `${spacing.s200}px 0`,
-                      }}>
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={(checked) => {
-                            const next = new Set(selectedCategories);
-                            if (checked) { next.add(cat); } else { next.delete(cat); }
-                            setSelectedCategories(next);
-                          }}
-                          label={CATEGORY_META[cat].label + ': ' + filteredCount}
-                        />
-                      </div>
-                      {/* Список нарушений внутри категории */}
-                      <div style={{ paddingLeft: spacing.s400 }}>
-                        {items.map((v, idx) => (
-                          <div
-                            key={v.id}
-                            style={{
-                              padding: `${spacing.s200}px 0`,
-                              fontSize: 14,
-                              color: isSelected ? colors.content : colors.contentMuted,
-                              cursor: 'pointer',
-                              borderBottom: idx < items.length - 1 ? `1px solid ${colors.border}` : 'none',
-                            }}
-                            onClick={() => sendMessage({ type: 'navigate-to-node', data: { nodeId: v.nodeId, pageId: v.pageId } })}
-                            title={UI.navigateToNodeTitle}
-                          >
-                            <span style={{ color: colors.contentMuted, marginRight: spacing.s200 }}>{idx + 1}</span>
-                            <span>{VIOLATION_TITLE[v.type]} {v.nodeName}</span>
-                            {v.suggestedToken !== null && (
-                              <span style={{ color: colors.accent }}> → {v.suggestedToken}</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          )}
-
-          {detection.violations.length === 0 && (
-            <p style={styles.hint}>{UI.dashEmpty}</p>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.s200 }}>
-            <Button
-              disabled={detection.violations.length === 0}
-              onClick={handleBulkFix}
-              icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.796 4.924L15 7.5l-4.146 3.038L12.472 16 8 12.6 3.528 16l1.618-5.462L1 7.5l5.204-1.576L8 1z" fill="currentColor"/></svg>}
-            >
-              {UI.dashFixAll}
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={filteredViolations.length === 0}
-              onClick={() => setCurrentView('review')}
-            >
-              {UI.dashReviewOne}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleReset}
-            >
-              {UI.dashRescan}
-            </Button>
-          </div>
-        </>
+        <Dashboard
+          detection={detection}
+          result={result}
+          lastScanExample={lastScanExample}
+          selectedCategories={selectedCategories}
+          onSelectedCategoriesChange={setSelectedCategories}
+          filteredViolations={filteredViolations}
+          onBulkFix={handleBulkFix}
+          onReviewOne={() => setCurrentView('review')}
+          onRescan={handleReset}
+          onNavigateToNode={(nodeId, pageId) => sendMessage({ type: 'navigate-to-node', data: { nodeId, pageId } })}
+        />
       )}
 
       {/* Сканирование завершено, но detection ещё не пришёл */}
@@ -428,9 +485,9 @@ export function App() {
 
 const styles = {
   root: {
-    padding: spacing.s350,
+    padding: spacing.containerPadding,
     fontFamily: typography.body.fontFamily,
-    fontSize: '13px',
+    fontSize: typography.body.fontSize,
     color: colors.content,
     display: 'flex',
     flexDirection: 'column',
