@@ -3,6 +3,7 @@ import type { PluginMessage } from '../../shared/types';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
 import { Input } from './ui/Input';
+import { BackButton } from './ui/BackButton';
 import { colors, typography, spacing, borders } from '../tokens';
 import { callGemini, clearCachedKey } from '../aiClient';
 import { UI } from '../../shared/strings';
@@ -82,13 +83,15 @@ export function Settings({ onBack }: Props) {
     setSaved(true);
   };
 
+  const saveDisabled = !aiEnabled || key.trim().length === 0;
+  const testDisabled = !aiEnabled || !hasExisting || testing;
+  const removeDisabled = !aiEnabled || !hasExisting;
+  const inputDisabled = !aiEnabled;
+
   return (
     <div style={{ fontFamily: typography.body.fontFamily }}>
-      <div
-        style={{ color: colors.content, cursor: 'pointer', marginBottom: spacing.s300, fontSize: typography.body.fontSize }}
-        onClick={onBack}
-      >
-        {UI.settingsBack}
+      <div style={{ marginBottom: spacing.s300 }}>
+        <BackButton onClick={onBack} />
       </div>
 
       <div style={{
@@ -110,10 +113,10 @@ export function Settings({ onBack }: Props) {
         <div style={styles.toggleHint}>{UI.aiToggleHint}</div>
       </div>
 
-      <div style={{ marginBottom: spacing.s200, fontSize: 14, color: colors.content }}>
+      <div style={{ marginBottom: spacing.s200, fontSize: typography.body.fontSize, color: colors.content }}>
         Google API Key
       </div>
-      <div style={{ marginBottom: spacing.s200, fontSize: 13, color: colors.contentMuted }}>
+      <div style={{ marginBottom: spacing.s200, fontSize: typography.body.fontSize, color: colors.contentMuted }}>
         {hasExisting ? UI.settingsKeyHintExisting : UI.settingsKeyHintNew}
       </div>
       <div style={{ marginBottom: spacing.s200, fontSize: 12, color: colors.accent }}>
@@ -121,35 +124,34 @@ export function Settings({ onBack }: Props) {
           {UI.settingsGetKey}
         </a>
       </div>
-      <div style={{ marginBottom: spacing.s300 }}>
+      <div>
         <Input
           type="password"
           placeholder="AIza..."
           value={key}
           onChange={setKey}
+          disabled={inputDisabled}
         />
       </div>
-      <Button onClick={handleSave} disabled={key.trim().length === 0}>
-        {saved ? UI.settingsKeySaved : UI.settingsSaveKey}
-      </Button>
-      {hasExisting && (
-        <div style={{ marginTop: spacing.s300, display: 'flex', flexDirection: 'column', gap: spacing.s200 }}>
-          <Button variant="secondary" onClick={handleTestKey} disabled={testing}>
-            {testing ? UI.settingsKeyTesting : UI.settingsTestKey}
-          </Button>
-          {testResult && (
-            <div style={{
-              fontSize: 13,
-              color: testResult.indexOf('✓') === 0 ? '#22C55E' : '#EF4444',
-            }}>
-              {testResult}
-            </div>
-          )}
-          <Button variant="secondary" onClick={handleRemove}>
-            {UI.settingsRemoveKey}
-          </Button>
-        </div>
-      )}
+      <div style={{ marginTop: spacing.s300, display: 'flex', flexDirection: 'column', gap: spacing.s200 }}>
+        <Button onClick={handleSave} disabled={saveDisabled}>
+          {saved ? UI.settingsKeySaved : UI.settingsSaveKey}
+        </Button>
+        <Button variant="secondary" onClick={handleTestKey} disabled={testDisabled}>
+          {testing ? UI.settingsKeyTesting : UI.settingsTestKey}
+        </Button>
+        {testResult && (
+          <div style={{
+            fontSize: typography.body.fontSize,
+            color: testResult.indexOf('✓') === 0 ? '#22C55E' : '#EF4444',
+          }}>
+            {testResult}
+          </div>
+        )}
+        <Button variant="secondary" onClick={handleRemove} disabled={removeDisabled}>
+          {UI.settingsRemoveKey}
+        </Button>
+      </div>
 
       <div style={styles.aboutBlock}>
         <div style={styles.aboutTitle}>{UI.aboutTitle}</div>

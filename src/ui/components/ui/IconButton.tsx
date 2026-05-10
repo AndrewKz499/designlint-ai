@@ -1,5 +1,5 @@
-import React from 'react';
-import { spacing, radii } from '../../tokens';
+import React, { useState } from 'react';
+import { colors, spacing, radii } from '../../tokens';
 
 interface IconButtonProps {
   children: React.ReactNode;
@@ -14,6 +14,8 @@ export function IconButton({
   disabled = false,
   size = 32,
 }: IconButtonProps): React.ReactElement {
+  const [isHovered, setIsHovered] = useState(false);
+
   const style: React.CSSProperties = {
     width: size,
     height: size,
@@ -22,14 +24,22 @@ export function IconButton({
     justifyContent: 'center',
     padding: spacing.s200,
     borderRadius: radii.pill,
-    background: 'transparent',
+    background: !disabled && isHovered ? colors.bgSecondary : 'transparent',
     border: 'none',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.4 : 1,
+    color: colors.content,
+    transition: 'background 0.15s ease',
   };
 
   return (
-    <button style={style} onClick={onClick} disabled={disabled}>
+    <button
+      style={style}
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {children}
     </button>
   );

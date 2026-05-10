@@ -220,13 +220,21 @@
 
 (a) **Header иконка:** в коде «шестерёнка» (Settings) `Header.tsx:9-14`, в макете `02-ready-to-scan.png` — «домик» (Home, переход назад). Это меняет навигационную модель: сейчас по клику на иконку открывается Settings; в макете — возврат на Home/ScanDesignSystem.
 
+🟢 **РЕШЕНО Product Owner (2026-05-08).** Контекстная модель иконки:
+- `gear` — на Home (`ScanDesignSystem`), клик открывает Settings.
+- `home` — на остальных продуктовых экранах (Ready-to-scan, ReportView card, Done и т.д.), клик — возврат на Home.
+- `none` — на Settings (там BackButton, Header без правой иконки).
+
+🔴 **Критическая семантика клика по `home`:** навигация на Home **БЕЗ сброса state.** Scope-выбор живёт, результаты сканирования живут, AI explanation cache (`explanationsRef`) живёт. То есть `home`-клик ≠ `handleReset()`. Это **новый путь** в навигационной модели: `setCurrentView('scanner')` без обнуления `detection` / `scopeChoice` / прочего. Реализуется при подключении Header в Ф.16.3+ (новый обработчик `handleNavigateHome`), не в Ф.16.2.
+
+**Реализация Header API:** prop `icon?: 'gear' | 'home' | 'none'` (default `'none'`), prop `onIconClick?: () => void`. Header мерджится в Ф.16.2 как 9-й компонент (см. `context/sprints/F16.2-components-step.md`). Ф.16.2b отменена.
+
 (b) **Scope:** в коде 4 значения `'selection' | 'section' | 'topFrames' | 'page'` (`types.ts:138-142`), в макете 02 — 5 чипов: Page / Layer / Frame / Selection / Section. Это меняет тип `ScanScope` (нарушает зону «не меняем контракт») И затрагивает `src/sandbox/scanner.ts`.
 
-🔴 **Эскалация Product Owner. Триггер: одно из двух меняет публичный поведенческий контракт; другое — меняет тип в `shared/types.ts` и логику scanner.ts.** Это **не редизайн UI**, это редизайн UX и Plugin API. Прошу подтвердить:
-- Иконка Header — действительно «домик» или это вариант макета, а в финале остаётся «шестерёнка»?
+🔴 **Эскалация Product Owner. Триггер: меняет тип в `shared/types.ts` и логику scanner.ts.** Прошу подтвердить:
 - Scope действительно 5 значений или 4 (макет иллюстративный, нужно интерпретировать `Layer` как сноску, не как новое значение)?
 
-Если оба расхождения подтверждены → требуется **отдельная фаза «Расширение scope»**, и она затрагивает sandbox — выходит за заявленный scope «не трогаем sandbox».
+Если расхождение подтверждено → требуется **отдельная фаза «Расширение scope»**, и она затрагивает sandbox — выходит за заявленный scope «не трогаем sandbox».
 
 ---
 
@@ -365,6 +373,63 @@
 
 ---
 
+## F-pre. Архитектурные ограничения Plugin API (зафиксировано в Ф.16.6.5)
+
+### F-pre.1 — Library styles listing: невозможно
+
+🔴 **Архитектурное ограничение Plugin API (зафиксировано 2026-05-09 при разведке Ф.16.6.5):** Library paint/text styles **не имеют активного API listing'а** в Figma Plugin API. Подтверждено чтением `node_modules/@figma/plugin-typings/plugin-api.d.ts` (@backend, разведка 2026-05-09):
+
+- ✅ Library **variables** реализуемы в полноте через `figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync()` + `getVariablesInLibraryCollectionAsync(key)` + `importVariableByKeyAsync(key)`.
+- ❌ Library **paint/text styles**: в локальных typings отсутствует `getAvailableLibraryStylesAsync` или эквивалент. Невозможно получить список library styles из подключённых библиотек до того, как они применены к нодам в файле.
+
+**Доступный путь — пассивное обнаружение** через walking файла + `BaseStyle.remote === true`. Library style обнаруживается только когда уже использован хотя бы на одной ноде сканируемого файла (что в большинстве сценариев DesignLint AI и нужно для формирования `Violation.candidates`).
+
+**Это ограничение НЕ v1.0-blocker.** Фиксируется как known limitation для README_TESTER и (опционально) ADR-002. Полная поддержка library styles listing возможна только если Figma расширит Plugin API — отслеживается как кандидат в v1.1+ при появлении соответствующего endpoint.
+
+**Прецеденты разведки:** @backend читал `plugin-api.d.ts` напрямую 2026-05-09; `figma.teamLibrary.*` имеет только variables-методы; `LocalStylesAPI` (`getLocalPaintStylesAsync` / `getLocalTextStylesAsync`) работает только для локальных стилей текущего файла.
+
+### F-pre.2 — Performance constraint: importVariableByKeyAsync последовательный
+
+🔴 На больших библиотеках (~500 переменных) последовательный `importVariableByKeyAsync` × N даёт 30–60 сек блокировки UI без визуального прогресса. Митигируется batch'ем с `ds-scan-progress` каждые ~20 импортов (см. Ф.16.6.5 step). Не v1.0-blocker, но влияет на UX → требует прогресса.
+
+### F-pre.3 — Permissions могут отозваться
+
+🔴 `getVariablesInLibraryCollectionAsync(key)` reject'ит при потере доступа к подключённой библиотеке (между моментом listing и моментом чтения). Митигируется `try/catch` на каждую коллекцию + сводным `figma.notify` в конце скана. Архитектурный принцип: **скан не падает из-за permission errors, работает с тем, что доступно.**
+
+### F-pre.4 — Single-select модель источников (PO 2026-05-09)
+
+🟢 **Multi-select модель источников отклонена Product Owner (2026-05-09).** Используется одиночный выбор на Home: либо одна Connected library, либо Local. За один скан используется ровно один источник, агрегирования не происходит. Settings раздел Token sources не создаётся.
+
+**Контракт выбранного источника** (`SelectedSource` в `src/shared/types.ts`):
+
+```ts
+type SelectedSource =
+  | { type: 'local' }
+  | { type: 'library'; libraryKey: string }
+```
+
+**Persistence:** одиночный объект `selectedSource` в `clientStorage` под ключом `'designlint-selected-source'`. Не массив preferences.
+
+**Default:** `{ type: 'library', libraryKey: <первая доступная> }` если у файла есть подключённые библиотеки; иначе `{ type: 'local' }`.
+
+**UI-модель Home:**
+- 2 radio: «Connected library» (default) / «Local library».
+- Под «Connected library» — dropdown со списком подключённых библиотек.
+- Реактивный блок «Source of truth» зависит от выбора (метрики выбранной библиотеки или 2 radio Styles/Variables для локальных).
+
+**Permissions:**
+- Нет ни одной подключённой библиотеки → radio «Connected library» disabled, активна только Local.
+- Выбранная Connected library стала недоступна → fallback на Local + одно `figma.notify` («Library X unavailable, switched to Local») — рекомендация архитектора, ожидает подтверждения PO.
+
+**Влияние на пункты F-pre.1–F-pre.3:**
+- F-pre.1 (library styles listing) — без изменений; пассивное обнаружение через walking сохраняется.
+- F-pre.2 (performance) — **смягчается:** N теперь = переменные одной выбранной библиотеки, не суммарно по всем подключённым. batch + прогресс остаются обязательными.
+- F-pre.3 (permission resilience) — **становится критичнее:** при потере доступа к выбранной библиотеке нужен явный fallback (см. выше), а не просто пропуск.
+
+**Прецедент решения:** PO зафиксировал 2026-05-09 после рассмотрения multi-select модели в первой редакции `context/sprints/F16.6.5-library-scanning-step.md`.
+
+---
+
 ## F. Что НЕ входит в v1.x редизайн (явный список scope-cap)
 
 🟢 Жёсткие исключения, помогающие удержать фокус:
@@ -399,7 +464,7 @@
 
 4. 🔴 **Вопрос #1 — имена файлов:** A (как в коде) / B (полное переименование) / C (гибрид; рекомендую). Блокирует Ф.16.4.
 5. 🔴 **Вопрос #2 — канонический Settings:** какой из 1/2/4? Блокирует Ф.16.6.
-6. 🔴 **Вопрос #11(a) — иконка Header:** «шестерёнка» или «домик» в финале? Меняет навигационную модель.
+6. 🟢 **Вопрос #11(a) — иконка Header: РЕШЕНО Product Owner (2026-05-08).** Контекстная модель `gear` (Home) / `home` (не-Home продуктовые экраны) / `none` (Settings). Клик по `home` — навигация без сброса state (`handleNavigateHome`, не `handleReset`). Header мерджится в Ф.16.2 как 9-й компонент. Ф.16.2b отменена.
 7. 🔴 **Вопрос #11(b) — `ScanScope`:** 4 значения (как в коде) или 5 (как в макете)? Если 5 — добавляется отдельная фаза, выходящая за scope «не трогаем sandbox».
 
 ### P2 — закрыто или разведано, не требует решения

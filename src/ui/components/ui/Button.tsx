@@ -42,25 +42,27 @@ function variantStyle(
   disabled: boolean,
 ): React.CSSProperties {
   if (disabled) {
+    // Эталоны 09/11: disabled = bgDefault + border + muted text.
     return {
-      background: colors.bgSecondary,
+      background: colors.bgDefault,
       color: colors.contentMuted,
-      border: 'none',
+      border: '1px solid ' + colors.border,
       cursor: 'not-allowed',
     };
   }
   if (variant === 'primary') {
     return {
       background: colors.content,
-      color: colors.contentOnDark,
+      color: colors.tagContent,
       border: '1px solid ' + colors.content,
       cursor: 'pointer',
     };
   }
+  // secondary: эталоны 04/06/11 — серый фон + синий (accent) текст.
   return {
     background: colors.bgSecondary,
-    color: colors.content,
-    border: 'none',
+    color: colors.accent,
+    border: '1px solid ' + colors.bgSecondary,
     cursor: 'pointer',
   };
 }
@@ -75,12 +77,22 @@ export function Button({
   type = 'button',
 }: ButtonProps): React.ReactElement {
   const [isHovered, setIsHovered] = useState(false);
+  const [isActive, setIsActive] = useState(false);
+
+  // hover/active для активной кнопки: hover — brightness(0.92), active — brightness(0.85).
+  // disabled — без hover/active эффектов.
+  const filterValue = (() => {
+    if (disabled) return 'none';
+    if (isActive) return 'brightness(0.85)';
+    if (isHovered) return 'brightness(0.92)';
+    return 'none';
+  })();
 
   const style: React.CSSProperties = {
     ...base,
     ...sizeStyles[size],
     ...variantStyle(variant, disabled),
-    filter: !disabled && isHovered ? 'brightness(0.92)' : 'none',
+    filter: filterValue,
   };
 
   return (
@@ -89,7 +101,9 @@ export function Button({
       disabled={disabled}
       onClick={disabled ? undefined : onClick}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => { setIsHovered(false); setIsActive(false); }}
+      onMouseDown={() => setIsActive(true)}
+      onMouseUp={() => setIsActive(false)}
       style={style}
     >
       {icon && <span style={{ display: 'flex' }}>{icon}</span>}

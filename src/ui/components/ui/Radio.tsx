@@ -1,37 +1,32 @@
 import React from 'react';
-import { colors, typography, spacing, radii } from '../../tokens';
+import { colors, typography, spacing } from '../../tokens';
 
-interface CheckboxProps {
+interface RadioProps {
+  /** Имя группы radio — для семантической группировки */
+  name: string;
+  /** Выбран ли radio */
   checked: boolean;
-  onChange: (checked: boolean) => void;
+  /** Обработчик выбора (вызывается при переключении в checked) */
+  onChange: () => void;
+  /** Видимая подпись справа от радио */
   label?: string;
+  /** Disabled-state */
   disabled?: boolean;
+  /** ARIA-label для assistive tech (если label не задан или нужно расширить) */
+  ariaLabel?: string;
 }
 
-function checkmark(strokeColor: string): React.ReactElement {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-      <path
-        d="M1.5 5L4 7.5L8.5 2.5"
-        stroke={strokeColor}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function boxStyle(checked: boolean, disabled: boolean): React.CSSProperties {
+function ringStyle(checked: boolean, disabled: boolean): React.CSSProperties {
   const common: React.CSSProperties = {
     width: 16,
     height: 16,
-    borderRadius: radii.r100,
+    borderRadius: '50%',
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'background 0.15s ease, border-color 0.15s ease',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.15s ease',
   };
   if (disabled) {
     return {
@@ -43,8 +38,8 @@ function boxStyle(checked: boolean, disabled: boolean): React.CSSProperties {
   if (checked) {
     return {
       ...common,
-      background: colors.accent,
-      border: 'none',
+      background: colors.bgDefault,
+      border: '1px solid ' + colors.accent,
     };
   }
   return {
@@ -54,12 +49,14 @@ function boxStyle(checked: boolean, disabled: boolean): React.CSSProperties {
   };
 }
 
-export function Checkbox({
+export function Radio({
+  name,
   checked,
   onChange,
   label,
   disabled = false,
-}: CheckboxProps): React.ReactElement {
+  ariaLabel,
+}: RadioProps): React.ReactElement {
   const wrapperStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'row',
@@ -76,35 +73,47 @@ export function Checkbox({
     color: disabled ? colors.contentMuted : colors.content,
   };
 
-  const toggle = () => {
-    if (!disabled) onChange(!checked);
+  const dotColor = disabled ? colors.contentMuted : colors.accent;
+
+  const handleClick = () => {
+    if (!disabled && !checked) onChange();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (disabled) return;
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
-      onChange(!checked);
+      if (!checked) onChange();
     }
   };
-
-  const tickColor = disabled ? colors.contentMuted : colors.tagContent;
 
   return (
     <div
       style={wrapperStyle}
-      onClick={toggle}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
-      role="checkbox"
+      role="radio"
       aria-checked={checked}
+      aria-disabled={disabled}
+      aria-label={ariaLabel}
+      data-name={name}
       tabIndex={disabled ? -1 : 0}
     >
-      <div style={boxStyle(checked, disabled)}>
-        {checked && checkmark(tickColor)}
+      <div style={ringStyle(checked, disabled)}>
+        {checked && !disabled && (
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: dotColor,
+            }}
+          />
+        )}
       </div>
       {label !== undefined && <span style={labelStyle}>{label}</span>}
     </div>
   );
 }
 
-export default Checkbox;
+export default Radio;

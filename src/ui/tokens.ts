@@ -11,7 +11,6 @@ export const colors = {
   // Content (text, icons)
   content: '#33332D',
   contentMuted: '#B3B3B3',
-  contentOnDark: '#F5F5F5',
 
   // Accent
   accent: '#002BFF',
@@ -65,20 +64,14 @@ export const typography = {
     lineHeight: '20px',
     letterSpacing: 0,
   },
-  caption: {
-    fontFamily: 'Inter',
-    fontSize: '13px',
-    fontWeight: 400,
-    lineHeight: '16px',
-    letterSpacing: 0,
-  },
 } as const;
 
 export const spacing = {
   s200: 8,
   s300: 12,
-  s350: 18, // 18 — extended horizontal screen padding
   s400: 16,
+  // functional, not scale: внешний padding контейнера экрана (макет 2026-05-07)
+  containerPadding: 26,
 };
 
 export const radii = {
