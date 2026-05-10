@@ -121,7 +121,7 @@ export const UI = {
   // About
   aboutTitle:       'About',
   aboutDescription: 'Design system audit for Figma in plain designer language',
-  aboutVersion:     'Version 0.14.13',
+  aboutVersion:     'Version 0.18.0-alpha',
   aboutFeedback:    'Feedback',
 
   aiToggleLabel: 'Use AI for explanations',
