@@ -16,6 +16,20 @@ export interface ScannedColor {
   boundStyleName: string | null;
   /** ID переменной, если fill привязан через boundVariables.color. null, если привязки нет или fill — solid color/Style */
   boundVariableId: string | null;
+  /** Name of nearest INSTANCE/COMPONENT containing this node (for component-aware AI narrowing in Ф.17). Optional for backward compat with pre-Ф.17 snapshots. */
+  componentName?: string;
+  /**
+   * Ф.18a (шаг 18.13): тип ноды Figma, в которой обнаружен цвет.
+   * Используется детектором Multi-slot ranking для классификации `SlotRole`
+   * (TEXT → 'text', RECTANGLE/FRAME → 'background' и т.п.).
+   */
+  nodeType: SceneNode['type'];
+  /**
+   * Ф.18a (шаг 18.13): где именно в ноде применён цвет — заливка или обводка.
+   * Используется детектором Multi-slot ranking для отделения 'border' от
+   * 'background' при одинаковом nodeType (например, RECTANGLE с fill vs stroke).
+   */
+  paintTarget: 'fill' | 'stroke';
 }
 
 /** Источник, используемый для аудита — Styles, Variables или оба */
@@ -43,6 +57,8 @@ export interface ScannedText {
   boundStyleId: string | null;
   /** Имя привязанного текстового стиля; null если hardcoded */
   boundStyleName: string | null;
+  /** Name of nearest INSTANCE/COMPONENT containing this node (for component-aware AI narrowing in Ф.17). Optional for backward compat with pre-Ф.17 snapshots. */
+  componentName?: string;
 }
 
 /** Итоговый результат сканирования Figma-файла */
@@ -59,6 +75,20 @@ export interface ScanResult {
   scopeLabel: string;
   /** Область сканирования (режим, выбранный пользователем) */
   scope: ScanScope;
+  /**
+   * Ф.17.3: индекс «имя компонента → набор tokenId, реально использованных
+   * внутри этого компонента». Собирается scanner'ом за один проход дерева
+   * параллельно с walkNode. Используется детектором в Ф.17.4 для component-aware
+   * narrowing топ-5 кандидатов и UI в Ф.17.5 для обогащения AI-prompt.
+   *
+   * Сериализуемый формат (plain object вместо Map<string, Set<string>>) —
+   * проходит structuredClone границы sandbox/UI без потерь.
+   *
+   * Опциональное поле для backward compat: старый ScanResult без него парсится
+   * нормально (поле undefined). Узлы без componentContext в индекс не попадают —
+   * детектор фоллбэчится на полную палитру.
+   */
+  componentTokenIndex?: { [componentName: string]: string[] };
 }
 
 /** Категория токена дизайн-системы */
@@ -83,19 +113,38 @@ export interface Token {
   kind: 'paintStyles' | 'textStyles' | 'variables';
   /** true если переменная была VARIABLE_ALIAS хотя бы в одном mode. undefined для Styles. */
   isSemantic?: boolean;
+  /**
+   * Имя библиотеки, из которой импортирован токен (если применимо).
+   * Используется AI prompt и потенциально для UI-бейджа в v1.1.
+   * undefined для локальных Styles/Variables — backward-compat.
+   */
+  libraryName?: string;
 }
+
+/**
+ * Single-select источник токенов для сборки эталонного снепшота.
+ * Phase Ф.16.6.5 — пользователь на Home выбирает либо одну подключённую
+ * библиотеку (через teamLibrary API), либо локальные variables/styles.
+ */
+export type SelectedSource =
+  | { type: 'local' }
+  | { type: 'library'; libraryKey: string };
 
 /** Обнаруженный источник токенов дизайн-системы в Figma-файле */
 export interface SnapshotSource {
   /** Отображаемое имя источника, например "Local Paint Styles" */
   name: string;
-  type: 'variables' | 'local-styles';
+  type: 'variables' | 'local-styles' | 'library-variables' | 'library-styles';
   /** Категория источника для UI */
   kind: 'paintStyles' | 'textStyles' | 'variables';
   /** Количество токенов в этом источнике */
   tokenCount: number;
   /** Включён ли источник в сканирование (по умолчанию true) */
   enabled: boolean;
+  /** Имя библиотеки (только для type: 'library-variables' | 'library-styles') */
+  libraryName?: string;
+  /** Ключ библиотеки teamLibrary (только для type: 'library-variables' | 'library-styles') */
+  libraryKey?: string;
 }
 
 /** Проблема, обнаруженная при валидации эталонного снепшота дизайн-системы */
@@ -132,6 +181,12 @@ export interface ReferenceSnapshot {
   createdAt: number;
   /** Хэш содержимого для определения изменений с момента последнего скана */
   hash: string;
+  /**
+   * Источник, по которому был построен snapshot (Ф.16.6.5).
+   * Используется isSnapshotStale() для авто-rebuild при смене selectedSource.
+   * undefined у старых snapshot'ов до Ф.16.6.5 → считается stale → rebuild.
+   */
+  selectedSource?: SelectedSource;
 }
 
 // Область сканирования: что обходит scanner
@@ -179,6 +234,14 @@ export interface Violation {
   suggestedTokenId: string | null;
   /** Топ-N ближайших токенов-кандидатов для Combobox (включая suggestedTokenId как первый) */
   candidates?: Array<{ id: string; name: string; value: string; kind: 'paintStyles' | 'textStyles' | 'variables' }>;
+  /**
+   * Ф.18a (R7): слот эталона, в котором использован тот же токен.
+   * Проставляется детектором, если кандидат-победитель совпал со слотом
+   * текущего `Example`. UI использует поле для секции «From example»
+   * в SelectField и для AI-prompt в Ф.18b. Опционально — для нарушений
+   * без выбранного эталона или вне match со слотами поле undefined.
+   */
+  exampleSlot?: ExampleSlot;
 }
 
 /** Итог проверки файла на соответствие дизайн-системе */
@@ -205,6 +268,101 @@ export interface ReportMetrics {
   scopeLabel: string;
 }
 
+// --- Ф.18a: Verification example flow («эталон в кадре», ADR-002) ---
+
+/**
+ * Режим выбора эталонного узла на холсте (E2/E3 в макете PO).
+ * - 'selection' — текущий `figma.currentPage.selection[0]` (любой SceneNode);
+ * - 'section'   — узел типа SECTION;
+ * - 'component' — узел типа COMPONENT/COMPONENT_SET/INSTANCE;
+ * - 'layout'    — frame с autolayout (в Ф.18a — заглушка, парсинг отложен в Ф.18b).
+ */
+export type ExampleScope = 'selection' | 'section' | 'component' | 'layout';
+
+/**
+ * Один слот эталона — один «использованный токен» в его дереве.
+ * Структура минимальна и фиксирована ADR-002 / шагом 18.2:
+ * - tokenId / tokenName  — ссылка на токен (Style ID или Variable ID),
+ *   tokenName=null невозможен по контракту: parser в Ф.18a подставляет
+ *   fallback `"Unnamed token (#${hex})"` для unpublished components (R6).
+ * - hexInTheme — резолвленное значение в текущей теме эталона (для color-слотов).
+ *   В Ф.18a это первый mode коллекции (как в designSystemParser:255).
+ *   В Ф.18b при включении R4 это станет результатом `resolveForConsumer(node)`.
+ *   Для не-color slotKind поле содержит сериализованное значение слота
+ *   (например, "16" для spacing, "8" для radius, "16/Inter/Bold" для typography).
+ * - slotKind  — категория слота, совпадает с `TokenCategory` за вычетом
+ *   'effect' (effects не поддерживаются Ф.18a) и с уточнением 'text-style'
+ *   (имя соответствует FigmaPaintStyle/TextStyle, не категории токена).
+ */
+export interface ExampleSlot {
+  tokenId: string;
+  tokenName: string;
+  hexInTheme: string;
+  slotKind: 'fill' | 'text-style' | 'spacing' | 'radius';
+  /**
+   * Ф.18a (шаг 18.13): семантическая роль слота в эталоне (background / text /
+   * icon / border / shadow / unknown). Используется детектором Multi-slot ranking
+   * для приоритетного матчинга нарушений: цвет на TEXT-ноде матчится со слотами
+   * role='text', цвет на stroke — со слотами role='border' и т.д.
+   *
+   * Обязательное поле в типе — миграция старых example из clientStorage будет
+   * в шаге 18.13.5 через `?? 'unknown'` при чтении.
+   */
+  role: SlotRole;
+}
+
+/**
+ * Ф.18a (шаг 18.13): семантическая роль слота эталона.
+ * Определяется парсером (`src/sandbox/exampleParser.ts`) по типу ноды
+ * и paintTarget; используется детектором Multi-slot ranking как
+ * приоритетный фильтр кандидатов.
+ *
+ * 'unknown' — fallback для слотов, чью роль парсер не смог определить
+ * однозначно (а также для legacy-example, мигрируемых в 18.13.5).
+ */
+export type SlotRole =
+  | 'background'
+  | 'text'
+  | 'icon'
+  | 'border'
+  | 'shadow'
+  | 'unknown';
+
+/**
+ * Эталон («Example»), собранный парсером из выбранного на холсте узла.
+ *
+ * Решения по полям (фиксируется здесь, чтобы будущие шаги Ф.18a/b не гадали):
+ * - `id` — стабильный идентификатор записи в clientStorage. В Ф.18a генерируется
+ *   как `${exampleNodeId}:${createdAt}`; используется UI как React key и для
+ *   будущей multi-example модели (v1.1, R2).
+ * - `scope` — режим выбора (см. ExampleScope), нужен UI для отображения чипа
+ *   и аналитики «какой режим заходит лучше».
+ * - `nodeId` / `pageId` — глобальные ссылки на узел эталона (R7). Sandbox
+ *   достаёт узел через `figma.getNodeByIdAsync(nodeId)` независимо от текущей
+ *   страницы; при удалении узла handler `get-example` возвращает null и сбрасывает
+ *   stale-ключ.
+ * - `name` — имя узла, для чипа `Example: <имя> ✕` в Header (шаг 18.8).
+ * - `slots` — собранные слоты эталона; основной payload для детектора.
+ * - `resolvedVariableModes` — снимок `node.resolvedVariableModes` на момент парсинга.
+ *   В Ф.18a НЕ используется логикой (R4 отложена), но сохраняется в данных,
+ *   чтобы Ф.18b мог включить темизацию без повторного парсинга. Опционально,
+ *   т.к. для нод без variable-привязок Figma возвращает пустой объект.
+ * - `createdAt` — `Date.now()` на момент парсинга, для UI-отображения «обновлён …»
+ *   и для cache invalidation в будущем.
+ *
+ * Сериализуется через JSON.stringify в clientStorage (ключ 'example-current').
+ */
+export interface Example {
+  id: string;
+  scope: ExampleScope;
+  nodeId: string;
+  pageId: string;
+  name: string;
+  slots: ExampleSlot[];
+  resolvedVariableModes?: { [collectionId: string]: string };
+  createdAt: number;
+}
+
 /**
  * Union type всех сообщений, передаваемых между sandbox (code.ts) и UI через postMessage.
  * Каждое сообщение идентифицируется полем type.
@@ -214,8 +372,26 @@ export type PluginMessage =
   | { type: 'ping' }
   /** Ответ на ping */
   | { type: 'pong' }
-  /** UI запрашивает запуск сканирования */
-  | { type: 'start-scan'; data?: { scope?: ScanScope; tokenSource?: TokenSource; tokenPolicy?: TokenPolicy } }
+  /**
+   * UI запрашивает запуск сканирования.
+   *
+   * Ф.18a (шаг 18.10): добавлено поле `example`. Если пользователь подтвердил
+   * выбор эталона на экране VerificationExample (Confirm) — UI передаёт
+   * текущий `Example`, и детектор использует `example.slots` как priority
+   * override при подборе `suggestedToken`. Если Skip или эталон не выбран —
+   * UI шлёт `null`, детектор работает по старой логике hex-расстояния.
+   * Поле опциональное для backward compat — sandbox считает отсутствие
+   * эквивалентным `null`.
+   */
+  | {
+      type: 'start-scan';
+      data?: {
+        scope?: ScanScope;
+        tokenSource?: TokenSource;
+        tokenPolicy?: TokenPolicy;
+        example?: Example | null;
+      };
+    }
   /** Промежуточный прогресс сканирования: sandbox → UI */
   | { type: 'scan-progress'; data: { current: number; total: number } }
   /** Сканирование завершено, данные готовы: sandbox → UI */
@@ -227,14 +403,57 @@ export type PluginMessage =
   | { type: 'get-snapshot' }
   /** Sandbox возвращает снепшот (или null если не сохранён) и флаг актуальности */
   | { type: 'snapshot-loaded'; data: { snapshot: ReferenceSnapshot | null; isStale: boolean } }
-  /** UI просит sandbox найти все источники дизайн-системы в файле */
+  /**
+   * UI просит sandbox найти все источники дизайн-системы в файле.
+   * Phase Ф.16.6.5: ответ — `sources-discovered` (новый формат с library variables).
+   * Старый ответ `ds-sources-found` оставлен в типах для backward compat,
+   * но обработчик его больше не отправляет.
+   */
   | { type: 'discover-sources' }
-  /** Sandbox возвращает список обнаруженных источников */
+  /**
+   * Sandbox возвращает список обнаруженных источников (новый формат, Ф.16.6.5).
+   * libraries — массив подключённых через teamLibrary библиотек.
+   * hasLocalStyles / hasLocalVariables — флаги для UI «есть ли локальные источники».
+   */
+  | {
+      type: 'sources-discovered';
+      data: {
+        libraries: { key: string; name: string; tokenCount: number }[];
+        hasLocalStyles: boolean;
+        hasLocalVariables: boolean;
+      };
+    }
+  /** UI запрашивает persisted selectedSource (single-select модель Ф.16.6.5) */
+  | { type: 'get-selected-source' }
+  /** Sandbox возвращает persisted selectedSource (default { type: 'local' } при ошибке/отсутствии) */
+  | { type: 'selected-source-loaded'; data: { source: SelectedSource } }
+  /** UI просит sandbox сохранить новый selectedSource в clientStorage */
+  | { type: 'set-selected-source'; data: { source: SelectedSource } }
+  /** Sandbox подтверждает сохранение (success) или сообщает об ошибке (error) */
+  | { type: 'set-selected-source-done'; data: { success: boolean; error?: string } }
+  /**
+   * Sandbox уведомляет UI о потере доступа к выбранной библиотеке.
+   * Одностороннее сообщение: UI обновляет state radio на Local, без ответа sandbox.
+   */
+  | { type: 'library-unavailable'; data: { libraryName: string; libraryKey: string } }
+  /**
+   * @deprecated с Ф.16.6.5 — заменено на `sources-discovered` с другой структурой.
+   * Оставлено в типах ради backward compat пока UI не мигрирует (Трек B).
+   */
   | { type: 'ds-sources-found'; data: { sources: SnapshotSource[] } }
-  /** UI подтверждает запуск сканирования с выбранными источниками */
-  | { type: 'ds-scan-confirmed'; data: { enabledSources: string[] } }
-  /** Sandbox сообщает текущий этап сканирования: sandbox → UI */
-  | { type: 'ds-scan-progress'; data: { stage: string } }
+  /**
+   * UI подтверждает запуск сканирования.
+   * Ф.16.6.5: `enabledSources` опционален — sandbox читает persisted selectedSource
+   * как single source of truth и игнорирует это поле.
+   */
+  | { type: 'ds-scan-confirmed'; data: { enabledSources?: string[] } }
+  /**
+   * Sandbox сообщает прогресс сборки snapshot.
+   * Ф.16.6.5: новый формат `{ current, total }` для batch-импорта library variables.
+   * Поле `stage` — старое поле, оставлено обязательным для backward compat пока
+   * UI не мигрировал в Треке B. Sandbox шлёт пустую строку, если этап не имеет имени.
+   */
+  | { type: 'ds-scan-progress'; data: { current: number; total: number; stage: string } }
   /** Sandbox завершил сканирование и возвращает готовый снепшот */
   | { type: 'ds-scan-complete'; data: { snapshot: ReferenceSnapshot } }
 
@@ -285,5 +504,51 @@ export type PluginMessage =
   | { type: 'set-ai-enabled'; data: { enabled: boolean } }
   /** Sandbox подтверждает сохранение флага */
   | { type: 'set-ai-enabled-done' }
+
+  // --- Ф.18a: Verification example flow («эталон в кадре», ADR-002) ---
+
+  /**
+   * UI запускает парсинг эталона из текущего selection.
+   * scope — режим выбора (E2/E3 макета). В Ф.18a 'layout' возвращает ошибку
+   * 'no-tokens-found' (заглушка, см. шаг 18.6).
+   */
+  | { type: 'parse-example'; data: { scope: ExampleScope } }
+  /**
+   * Sandbox шлёт промежуточный прогресс рекурсивного обхода узла.
+   * `current` / `total` — обработанные / ожидаемые ноды; UI рисует Spinner.
+   */
+  | { type: 'parse-example-progress'; data: { current: number; total: number } }
+  /**
+   * Sandbox возвращает результат парсинга. В catch-ветке handler шлёт
+   * `example: null` + `error` (см. шаг 18.4 — три кода ошибки).
+   * - 'no-selection'    — selection пуст или больше одного узла;
+   * - 'not-published'   — узел требует teamLibrary, но недоступен (отложено R6);
+   * - 'no-tokens-found' — узел распарсен, но слотов 0 (или scope='layout' в Ф.18a).
+   */
+  | {
+      type: 'parse-example-result';
+      data: {
+        example: Example | null;
+        error?: 'no-selection' | 'not-published' | 'no-tokens-found';
+      };
+    }
+  /**
+   * UI просит sandbox удалить текущий эталон (клик по ✕ на чипе или
+   * по «Add another example» — UX перезаписи в Ф.18a, см. ADR-002 / R7).
+   * Ответ — `example-loaded` с example=null.
+   */
+  | { type: 'clear-example' }
+  /**
+   * UI запрашивает persisted example из clientStorage (вызывается при mount App).
+   * Sandbox валидирует через `figma.getNodeByIdAsync(nodeId)`: если узел
+   * удалён — возвращает null и удаляет stale-ключ.
+   */
+  | { type: 'get-example' }
+  /**
+   * Sandbox возвращает текущий example (или null после clear / stale).
+   * Используется и как ответ на `get-example`, и как подтверждение `clear-example`.
+   */
+  | { type: 'example-loaded'; data: { example: Example | null } }
+
   /** UI просит sandbox изменить размер окна плагина */
   | { type: 'resize'; data: { width: number; height: number } };

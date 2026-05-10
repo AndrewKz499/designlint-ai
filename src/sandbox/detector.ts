@@ -1,4 +1,4 @@
-import type { ScanResult, ReferenceSnapshot, Violation, DetectionResult, Severity, TokenSource, TokenPolicy } from '../shared/types';
+import type { ScanResult, ReferenceSnapshot, Violation, DetectionResult, Severity, TokenSource, TokenPolicy, ScannedColor, ScannedText, Example, ExampleSlot, Token, ViolationType, SlotRole } from '../shared/types';
 
 // ---------------------------------------------------------------------------
 // Вспомогательные функции
@@ -30,6 +30,243 @@ function makeViolationId(nodeId: string, type: string): string {
   return nodeId + '_' + type;
 }
 
+/**
+ * Ф.17.4: возвращает топ-5 кандидатов с component-aware narrowing.
+ * Если у узла нет componentName, индекс отсутствует или для компонента нет записи —
+ * возвращает scored.slice(0, 5) (fallback на полную палитру).
+ * Если фильтрация по индексу даёт ≥2 кандидатов — возвращает их (до 5).
+ * Если <2 — возвращает полную палитру (решение PO: «слишком узко»).
+ */
+function pickTopCandidates<T extends { id: string }>(
+  scored: Array<{ token: T; dist: number }>,
+  scanResult: ScanResult,
+  componentName: string | undefined,
+): Array<{ token: T; dist: number }> {
+  const fallback = scored.slice(0, 5);
+  if (componentName === undefined || componentName === '') return fallback;
+  const index = scanResult.componentTokenIndex;
+  if (index === undefined) return fallback;
+  const ids = index[componentName];
+  if (ids === undefined || ids.length === 0) return fallback;
+  const allowed = new Set<string>(ids);
+  const narrowed: Array<{ token: T; dist: number }> = [];
+  for (let i = 0; i < scored.length && narrowed.length < 5; i++) {
+    if (allowed.has(scored[i].token.id)) narrowed.push(scored[i]);
+  }
+  return narrowed.length >= 2 ? narrowed : fallback;
+}
+
+// ---------------------------------------------------------------------------
+// Ф.18a (шаг 18.10): priority override на основе эталона
+// ---------------------------------------------------------------------------
+
+/**
+ * Маппинг типа нарушения → slotKind эталона (см. ExampleSlot.slotKind).
+ * Согласовано в шаге 18.3: stroke и fill объединены под 'fill', поэтому
+ * для всех цветовых нарушений используется один slotKind.
+ *
+ * `nonstandard_font_size` пока не маппится: в эталоне нет slotKind 'font-size'
+ * (отдельной шкалы), а text-style целиком включает font-size + family + weight,
+ * что не подходит для одиночной замены fontSize. Эта развилка отложена в Ф.18b.
+ */
+function slotKindForViolation(type: ViolationType): ExampleSlot['slotKind'] | null {
+  if (type === 'hardcoded_color' || type === 'detached_style' || type === 'similar_to_token') {
+    return 'fill';
+  }
+  if (type === 'missing_text_style') {
+    return 'text-style';
+  }
+  if (type === 'spacing_off_scale') {
+    return 'spacing';
+  }
+  return null;
+}
+
+/**
+ * Ф.18a (шаг 18.13.4): определяет семантическую роль нарушения, чтобы
+ * матчить его с подходящими слотами эталона. Симметрична `inferRole` в
+ * `exampleParser.ts`: те же правила (text-style → text, stroke → border,
+ * TEXT-нода → text, иначе для color → background).
+ *
+ * scannedNode — данные из ScanResult (ScannedColor для цветовых нарушений,
+ * ScannedText для текстовых; undefined как defensive fallback). Для
+ * `missing_text_style` роль определяется по типу нарушения и не требует node.
+ *
+ * Один helper с union вместо двух (color + typography), т.к. развилка идёт
+ * по `violation.type` сверху вниз, а node нужен только в ветке hardcoded_color
+ * для чтения paintTarget / nodeType.
+ */
+function inferViolationRole(
+  violation: Violation,
+  scannedNode: ScannedColor | ScannedText | undefined,
+): SlotRole {
+  // (a) typography по определению.
+  if (violation.type === 'missing_text_style') return 'text';
+
+  // (b) hardcoded_color: stroke → border, TEXT → text, иначе background.
+  if (violation.type === 'hardcoded_color' || violation.type === 'detached_style' || violation.type === 'similar_to_token') {
+    if (scannedNode !== undefined && (scannedNode as ScannedColor).paintTarget === 'stroke') return 'border';
+    if (scannedNode !== undefined && (scannedNode as ScannedColor).nodeType === 'TEXT') return 'text';
+    return 'background';
+  }
+
+  // (c)/(d) spacing и прочие — multi-slot вне scope 18.13.
+  return 'unknown';
+}
+
+/**
+ * Ф.18a (шаг 18.13.4): возвращает ВСЕ слоты эталона указанного slotKind+role
+ * (E4=a — все слоты роли попадают в candidates). При отсутствии матча по role
+ * graceful fallback на role='unknown' (E5: миграция legacy-example в 18.13.5
+ * проставит role='unknown' старым слотам). При полном отсутствии матча по
+ * slotKind — null, тогда `applyExampleOverride` отдаёт управление старой
+ * логике pickTopCandidates (R-13.4=b).
+ */
+function findExampleSlot(
+  example: Example | null,
+  kind: ExampleSlot['slotKind'],
+  role: SlotRole,
+): ExampleSlot[] | null {
+  if (example === null) return null;
+
+  // 1. Точный матч по slotKind+role.
+  const exact: ExampleSlot[] = [];
+  for (let i = 0; i < example.slots.length; i++) {
+    if (example.slots[i].slotKind === kind && example.slots[i].role === role) {
+      exact.push(example.slots[i]);
+    }
+  }
+  if (exact.length > 0) return exact;
+
+  // 2. Fallback на role='unknown' (E5 graceful для legacy-example).
+  const unknown: ExampleSlot[] = [];
+  for (let i = 0; i < example.slots.length; i++) {
+    if (example.slots[i].slotKind === kind && example.slots[i].role === 'unknown') {
+      unknown.push(example.slots[i]);
+    }
+  }
+  if (unknown.length > 0) return unknown;
+
+  // 3. Полное отсутствие матча — sentinel для перехода на pickTopCandidates.
+  return null;
+}
+
+/**
+ * Создаёт Token-обёртку из ExampleSlot, если в snapshot нет реального токена
+ * с таким id. Это inline fallback для library-токенов (R6 / эскалация шага
+ * 18.10): эталон может ссылаться на токен, которого нет в snapshot текущей
+ * библиотеки. UI получает корректные name/value/id для рендера и Fix.
+ *
+ * `kind` определяется по slotKind: 'fill' / 'spacing' / 'radius' → variables
+ * как самый общий kind (UI отрендерит без дополнительной семантики);
+ * 'text-style' → textStyles. Лучшего хеуристика нет, т.к. ExampleSlot
+ * не различает Style vs Variable.
+ */
+function tokenFromSlot(slot: ExampleSlot): Token {
+  let category: Token['category'];
+  let kind: Token['kind'];
+  if (slot.slotKind === 'fill') {
+    category = 'color';
+    kind = 'variables';
+  } else if (slot.slotKind === 'text-style') {
+    category = 'typography';
+    kind = 'textStyles';
+  } else if (slot.slotKind === 'spacing') {
+    category = 'spacing';
+    kind = 'variables';
+  } else {
+    category = 'radius';
+    kind = 'variables';
+  }
+  return {
+    id: slot.tokenId,
+    name: slot.tokenName,
+    category: category,
+    value: slot.hexInTheme,
+    source: 'Example',
+    kind: kind,
+  };
+}
+
+/**
+ * Возвращает Token из snapshot по id; если не нашёл — fallback на
+ * inline-Token из ExampleSlot (R6: эталон может ссылаться на library-токен,
+ * которого нет в snapshot).
+ */
+function resolveTokenForSlot(snapshot: ReferenceSnapshot | null, slot: ExampleSlot): Token {
+  if (snapshot !== null) {
+    for (let i = 0; i < snapshot.tokens.length; i++) {
+      if (snapshot.tokens[i].id === slot.tokenId) return snapshot.tokens[i];
+    }
+  }
+  return tokenFromSlot(slot);
+}
+
+/**
+ * Применяет priority override от эталона к одному violation.
+ *
+ * Ф.18a (шаг 18.13.4): теперь учитывает SlotRole. Алгоритм:
+ *  1. Определяем роль нарушения через `inferViolationRole` (по типу +
+ *     ScannedColor.paintTarget/nodeType).
+ *  2. Находим ВСЕ слоты эталона с подходящими slotKind+role
+ *     (E4=a; fallback на role='unknown' для legacy-example).
+ *  3. Если матч есть — берём первый слот как primary suggestion,
+ *     остальные слоты + старые candidates (от pickTopCandidates) сливаем
+ *     в единый список с дедупом по tokenId и лимитом 10.
+ *  4. Если матча нет — оставляем результат старой логики
+ *     (R-13.4=b: pickTopCandidates как fallback).
+ *
+ * `scannedNode` — данные ScanResult по nodeId нарушения (нужны только
+ * для inferViolationRole; индексы строит вызывающий runDetection).
+ */
+function applyExampleOverride(
+  violation: Violation,
+  example: Example | null,
+  snapshot: ReferenceSnapshot | null,
+  scannedNode: ScannedColor | ScannedText | undefined,
+): void {
+  if (example === null) return;
+  const kind = slotKindForViolation(violation.type);
+  if (kind === null) return;
+
+  const role = inferViolationRole(violation, scannedNode);
+  const matchedSlots = findExampleSlot(example, kind, role);
+  if (matchedSlots === null) return; // R-13.4=b: fallback на pickTopCandidates.
+
+  const primarySlot = matchedSlots[0];
+  const primaryToken = resolveTokenForSlot(snapshot, primarySlot);
+  violation.suggestedToken = primaryToken.name;
+  violation.suggestedTokenId = primaryToken.id;
+  violation.exampleSlot = primarySlot;
+
+  // Сборка candidates: сначала все слоты роли, затем старый top-N от
+  // pickTopCandidates (уже лежит в violation.candidates), потом дедуп
+  // по tokenId и лимит 10. Multi-slot идут первыми, поэтому при коллизии
+  // tokenId сохраняется их вариант (важно для R6 inline tokens из эталона).
+  const seen: { [tokenId: string]: boolean } = {};
+  const merged: Array<{ id: string; name: string; value: string; kind: 'paintStyles' | 'textStyles' | 'variables' }> = [];
+
+  for (let i = 0; i < matchedSlots.length; i++) {
+    const t = resolveTokenForSlot(snapshot, matchedSlots[i]);
+    if (seen[t.id] === true) continue;
+    seen[t.id] = true;
+    merged.push({ id: t.id, name: t.name, value: t.value, kind: t.kind });
+    if (merged.length >= 10) break;
+  }
+
+  if (violation.candidates !== undefined && merged.length < 10) {
+    for (let i = 0; i < violation.candidates.length; i++) {
+      const c = violation.candidates[i];
+      if (seen[c.id] === true) continue;
+      seen[c.id] = true;
+      merged.push(c);
+      if (merged.length >= 10) break;
+    }
+  }
+
+  violation.candidates = merged;
+}
+
 // ---------------------------------------------------------------------------
 // Основная функция
 // ---------------------------------------------------------------------------
@@ -37,12 +274,19 @@ function makeViolationId(nodeId: string, type: string): string {
 /**
  * Запускает аудит файла на соответствие дизайн-системе.
  * Использует результат сканирования нод и (если есть) эталонный снепшот.
+ *
+ * Ф.18a (шаг 18.10): добавлен параметр `example`. Если задан — для каждого
+ * нарушения соответствующего slotKind детектор перезаписывает suggestedToken
+ * первым подходящим слотом эталона (priority override). Старая логика
+ * hex-расстояния остаётся как fallback: для нарушений без покрытия по
+ * slotKind работает как раньше.
  */
 export function runDetection(
   scanResult: ScanResult,
   snapshot: ReferenceSnapshot | null,
   tokenSource: TokenSource,
   tokenPolicy: TokenPolicy,
+  example: Example | null = null,
 ): DetectionResult {
   const violations: Violation[] = [];
 
@@ -183,7 +427,7 @@ export function runDetection(
           suggestedTokenId: similarMatch.id,
         };
       }
-      // Если точного и похожего совпадения нет — собираем топ-3 по манхэттенской дистанции
+      // Если точного и похожего совпадения нет — собираем топ-5 по манхэттенской дистанции
       if (similarMatch === null && colorTokens.length > 0) {
         var scored = [];
         for (var k = 0; k < colorTokens.length; k++) {
@@ -194,7 +438,8 @@ export function runDetection(
           scored.push({ token: colorTokens[k], dist: dist });
         }
         scored.sort(function(a, b){ return a.dist - b.dist; });
-        var top = scored.slice(0, 3);
+        // Ф.17.4: топ-5 + component-aware narrowing (fallback на полную палитру при <2).
+        var top = pickTopCandidates(scored, scanResult, color.componentName);
 
         if (top.length > 0) {
           var best = top[0].token;
@@ -259,9 +504,15 @@ export function runDetection(
   }
 
   if (textTokens.length > 0) {
+    // Индекс scanResult.texts по nodeId — чтобы достать componentName для текущей violation.
+    var textByNodeId: { [nodeId: string]: ScannedText } = {};
+    for (var txi = 0; txi < scanResult.texts.length; txi++) {
+      textByNodeId[scanResult.texts[txi].nodeId] = scanResult.texts[txi];
+    }
+
     for (var ti = 0; ti < violations.length; ti++) {
       if (violations[ti].type === 'missing_text_style' && violations[ti].suggestedTokenId === null) {
-        // Собираем топ-3 ближайших текстовых стилей по fontSize
+        // Собираем топ-5 ближайших текстовых стилей по fontSize
         var violFontSize = parseFloat(violations[ti].currentValue);
         if (isNaN(violFontSize)) continue;
 
@@ -273,7 +524,11 @@ export function runDetection(
           scoredText.push({ token: textTokens[tt], dist: d });
         }
         scoredText.sort(function(a, b){ return a.dist - b.dist; });
-        var topText = scoredText.slice(0, 3);
+        // Ф.17.4: топ-5 + component-aware narrowing (текстовый индекс через boundStyleId).
+        var textCompName = textByNodeId[violations[ti].nodeId] !== undefined
+          ? textByNodeId[violations[ti].nodeId].componentName
+          : undefined;
+        var topText = pickTopCandidates(scoredText, scanResult, textCompName);
 
         if (topText.length > 0) {
           var bestT = topText[0].token;
@@ -285,6 +540,40 @@ export function runDetection(
           });
         }
       }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Ф.18a (шаг 18.10): priority override от эталона
+  //
+  // Эталон работает как PRIORITY OVERRIDE, а не замена. Если example !== null
+  // и у нарушения есть слот эталона соответствующего slotKind — берём
+  // токен слота первым кандидатом и заполняем suggestedToken / exampleSlot.
+  // Старая логика выше (hex-расстояние, similar / detached / fontSize
+  // ranking) уже отработала и осталась fallback'ом для непокрытых slotKind.
+  // -------------------------------------------------------------------------
+
+  if (example !== null) {
+    // Индексы ScannedColor / ScannedText по nodeId — нужны inferViolationRole
+    // (paintTarget / nodeType для color, defensive undefined для остальных).
+    const colorByNodeId: { [nodeId: string]: ScannedColor } = {};
+    for (let i = 0; i < scanResult.colors.length; i++) {
+      colorByNodeId[scanResult.colors[i].nodeId] = scanResult.colors[i];
+    }
+    const textByNodeIdForOverride: { [nodeId: string]: ScannedText } = {};
+    for (let i = 0; i < scanResult.texts.length; i++) {
+      textByNodeIdForOverride[scanResult.texts[i].nodeId] = scanResult.texts[i];
+    }
+
+    for (let i = 0; i < violations.length; i++) {
+      const v = violations[i];
+      let scanned: ScannedColor | ScannedText | undefined;
+      if (v.type === 'missing_text_style' || v.type === 'nonstandard_font_size') {
+        scanned = textByNodeIdForOverride[v.nodeId];
+      } else {
+        scanned = colorByNodeId[v.nodeId];
+      }
+      applyExampleOverride(v, example, snapshot, scanned);
     }
   }
 

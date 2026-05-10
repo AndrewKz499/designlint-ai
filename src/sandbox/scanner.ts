@@ -45,6 +45,45 @@ interface ScanAccumulator {
   colors: ScannedColor[];
   texts: ScannedText[];
   totalNodesScanned: number;
+  /**
+   * IDs локальных Style-узлов, помеченных как `remote === true` (Ф.16.6.5).
+   * Пассивный сбор для будущего v1.1: «library styles listing» через
+   * импорт Plugin API не поддерживается, но remote=true можно обнаружить
+   * на уровне referencing-нод. В v1.0 поле собирается, но не используется.
+   */
+  remoteStyleIds: Set<string>;
+  /**
+   * Ф.17.3: индекс «имя компонента → Set<tokenId>».
+   * Внутри scanner используем Map<string, Set<string>> для дедупликации.
+   * При выходе из scanDocument сериализуем в plain object для границы sandbox/UI
+   * (см. ScanResult.componentTokenIndex).
+   *
+   * Узлы вне компонента (componentContext === undefined) в индекс не попадают —
+   * это намеренно: для них детектор использует fallback на полную палитру (Ф.17.4).
+   * Хардкод (нет boundVariableId/boundStyleId) тоже не попадает — естественно,
+   * так как добавляем только при наличии id.
+   */
+  componentTokenIndex: Map<string, Set<string>>;
+}
+
+/**
+ * Ф.17.3: добавляет tokenId в Set текущего компонента.
+ * No-op, если componentName или tokenId пусты — это валидный случай
+ * (узел вне компонента или хардкод-узел).
+ */
+function recordComponentToken(
+  index: Map<string, Set<string>>,
+  componentName: string | undefined,
+  tokenId: string | null,
+): void {
+  if (componentName === undefined || componentName === '') return;
+  if (tokenId === null || tokenId === '') return;
+  let set = index.get(componentName);
+  if (set === undefined) {
+    set = new Set<string>();
+    index.set(componentName, set);
+  }
+  set.add(tokenId);
 }
 
 /**
@@ -57,6 +96,7 @@ function walkNode(
   pageName: string,
   acc: ScanAccumulator,
   styleNames: { [id: string]: string },
+  componentContext?: string,
 ): void {
   // Пропускаем скрытые ноды вместе со всеми их потомками
   if (!node.visible) return;
@@ -68,6 +108,18 @@ function walkNode(
   acc.totalNodesScanned += 1;
   if (acc.totalNodesScanned % 200 === 0) {
     figma.ui.postMessage({ type: 'scan-progress', data: { current: acc.totalNodesScanned, total: 0 } });
+  }
+
+  // Ф.17.1: обновляем component context перед обходом детей.
+  // Q1.edge PO — ближайший снизу (Card → Avatar → Image ⇒ 'Avatar').
+  let nextContext = componentContext;
+  if (node.type === 'INSTANCE') {
+    // mainComponent может быть null (detached) — fallback на node.name.
+    const mainName = node.mainComponent ? node.mainComponent.name : '';
+    const candidate = mainName !== '' ? mainName : node.name;
+    if (candidate !== '') nextContext = candidate;
+  } else if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
+    if (node.name !== '') nextContext = node.name;
   }
 
   // --- Обработка заливок (fills) ---
@@ -83,6 +135,19 @@ function walkNode(
       const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId, styleNames) : null;
       const boundVariableId = fill.boundVariables?.color?.id ?? null;
 
+      // Ф.16.6.5: пассивный сбор remote (library) styleIds — без сетевых вызовов.
+      // Если styleId есть, но в локальном словаре styleNames его нет —
+      // значит стиль импортирован из подключённой библиотеки (remote=true).
+      if (boundStyleId !== null && boundStyleName === null) {
+        acc.remoteStyleIds.add(boundStyleId);
+      }
+
+      // Ф.17.3: индекс «компонент → токены». Добавляем оба возможных id —
+      // через variable или через style. Set дедуплицирует естественно.
+      // Хардкод (оба null) сюда не попадает — recordComponentToken это no-op.
+      recordComponentToken(acc.componentTokenIndex, nextContext, boundVariableId);
+      recordComponentToken(acc.componentTokenIndex, nextContext, boundStyleId);
+
       acc.colors.push({
         nodeId: node.id,
         nodeName: node.name,
@@ -93,6 +158,14 @@ function walkNode(
         boundStyleId,
         boundStyleName,
         boundVariableId,
+        componentName: nextContext,
+        // Ф.18a (18.13.3): поля для Multi-slot ranking. nodeType — тип ноды Figma,
+        // paintTarget — заливка или обводка. Scanner сейчас сканирует только fills
+        // (блока сбора strokes нет), поэтому paintTarget здесь всегда 'fill'.
+        // Если в Ф.18b добавится сбор strokes — `paintTarget: 'stroke'` будет
+        // заполняться в новом блоке.
+        nodeType: node.type,
+        paintTarget: 'fill',
       });
     }
   }
@@ -120,6 +193,15 @@ function walkNode(
       typeof textStyleId === 'string' && textStyleId !== '' ? textStyleId : null;
     const boundStyleName = boundStyleId !== null ? resolveStyleName(boundStyleId, styleNames) : null;
 
+    // Ф.16.6.5: пассивный сбор remote text styleIds.
+    if (boundStyleId !== null && boundStyleName === null) {
+      acc.remoteStyleIds.add(boundStyleId);
+    }
+
+    // Ф.17.3: индекс «компонент → токены» для текстовых нод.
+    // Для текста токеном считается boundStyleId (variable text-style в Figma не существует).
+    recordComponentToken(acc.componentTokenIndex, nextContext, boundStyleId);
+
     acc.texts.push({
       nodeId: node.id,
       nodeName: node.name,
@@ -131,13 +213,14 @@ function walkNode(
       lineHeight,
       boundStyleId,
       boundStyleName,
+      componentName: nextContext,
     });
   }
 
   // --- Рекурсивный спуск в дочерние ноды ---
   if ('children' in node) {
     for (const child of node.children) {
-      walkNode(child, pageId, pageName, acc, styleNames);
+      walkNode(child, pageId, pageName, acc, styleNames, nextContext);
     }
   }
 }
@@ -157,6 +240,8 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
     colors: [],
     texts: [],
     totalNodesScanned: 0,
+    remoteStyleIds: new Set<string>(),
+    componentTokenIndex: new Map<string, Set<string>>(),
   };
 
   var pagesScanned = 0;
@@ -249,6 +334,20 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
     scopeLabel = 'Фреймы страницы (' + frs.length + ')';
   }
 
+  // Ф.17.3: сериализуем Map<string, Set<string>> в plain object {name: string[]}
+  // для границы sandbox/UI (structuredClone в Figma postMessage не передаёт Map/Set
+  // надёжно). Опускаем поле, если индекс пуст — backward compat и нулевой оверхед
+  // на скан без компонентов.
+  let componentTokenIndex: { [componentName: string]: string[] } | undefined;
+  if (acc.componentTokenIndex.size > 0) {
+    componentTokenIndex = {};
+    acc.componentTokenIndex.forEach(function (set, name) {
+      const arr: string[] = [];
+      set.forEach(function (id) { arr.push(id); });
+      (componentTokenIndex as { [k: string]: string[] })[name] = arr;
+    });
+  }
+
   return {
     colors: acc.colors,
     texts: acc.texts,
@@ -257,5 +356,6 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
     pagesScanned,
     scopeLabel,
     scope,
+    componentTokenIndex,
   };
 }
