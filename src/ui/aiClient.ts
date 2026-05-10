@@ -38,7 +38,8 @@ export interface GeminiMessage {
 export async function callGemini(
   messages: GeminiMessage[],
   systemPrompt?: string,
-  maxTokens: number = 1024
+  maxTokens: number = 1024,
+  signal?: AbortSignal
 ): Promise<string> {
   const key = await getApiKey();
   if (!key) {
@@ -67,6 +68,7 @@ export async function callGemini(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!resp.ok) {

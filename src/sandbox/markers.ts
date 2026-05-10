@@ -4,23 +4,6 @@ const MARKER_NAME = 'DesignLint Marker';
 const GROUP_NAME = 'DesignLint Markers';
 const MAX_MARKERS = 50;
 
-// ---------------------------------------------------------------------------
-// Вспомогательные функции
-// ---------------------------------------------------------------------------
-
-/** Рекурсивно собирает все ноды с заданным именем в поддереве */
-function findByName(node: BaseNode, name: string, result: SceneNode[]): void {
-  if ('name' in node && node.name === name && node !== figma.root) {
-    result.push(node as SceneNode);
-  }
-  if ('children' in node) {
-    const children = (node as ChildrenMixin).children;
-    for (let i = 0; i < children.length; i++) {
-      findByName(children[i], name, result);
-    }
-  }
-}
-
 
 // ---------------------------------------------------------------------------
 // Публичные функции
@@ -108,26 +91,27 @@ export async function createMarkers(violations: Violation[]): Promise<void> {
 }
 
 /**
- * Удаляет все маркеры DesignLint со всех страниц документа.
- * Ищет группу 'DesignLint Markers' и одиночные 'DesignLint Marker' (обратная совместимость).
+ * Удаляет все маркеры DesignLint с активной страницы.
+ *
+ * Маркеры создаются текущей версией плагина строго как top-level дети
+ * figma.currentPage (см. createMarkers → figma.group(..., figma.currentPage)),
+ * поэтому полный рекурсивный обход всего дерева документа не нужен.
+ *
+ * Ранее clearMarkers загружал loadAsync() все страницы файла и рекурсивно
+ * обходил каждое поддерево — это давало >60 секунд на больших файлах при
+ * любом скане (включая selection из 1 элемента), потому что createMarkers
+ * вызывается из start-scan безусловно. См. баг 8.
  */
 export async function clearMarkers(): Promise<void> {
-  const pages = figma.root.children;
-  for (let i = 0; i < pages.length; i++) {
-    await pages[i].loadAsync();
-
-    const found: SceneNode[] = [];
-    // Группа (новый формат)
-    findByName(pages[i], GROUP_NAME, found);
-    // Одиночные маркеры (старый формат, обратная совместимость)
-    findByName(pages[i], MARKER_NAME, found);
-
-    for (var j = 0; j < found.length; j++) {
+  const children = figma.currentPage.children;
+  // Идём с конца — remove() меняет порядок, безопаснее
+  for (let i = children.length - 1; i >= 0; i--) {
+    const node = children[i];
+    if (node.name === GROUP_NAME || node.name === MARKER_NAME) {
       try {
-        found[j].remove();
+        node.remove();
       } catch (e) {
-        // Нода могла быть удалена каскадно с родительской группой —
-        // это нормально, продолжаем.
+        // Нода могла быть удалена каскадно — это нормально, продолжаем.
       }
     }
   }
