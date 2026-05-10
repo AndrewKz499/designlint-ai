@@ -168,6 +168,28 @@ ____
 
 🟢 **Plugin message** — это типизированное сообщение между UI и sandbox. Симметричность протокола (на каждый запрос гарантирован ответ, в том числе из catch-ветки) — архитектурное требование. ⠀ _Реализация: `shared/types.ts → PluginMessage`. Примеры: `start-scan`, `request-preview`, `preview-ready`, `fix-violation`, `fix-complete`, `get-ai-enabled`, `set-ai-enabled`._ ⠀ _См. также: Sandbox._
 
+## Эталон в кадре (Verification example flow)
+
+Группа введена в Ф.18a (2026-05-10) для фиксации ментальной модели «эталон в кадре» — пользователь выбирает на холсте один эталонный узел, плагин парсит из него palette токенов и при сканировании использует слоты эталона как первичный источник кандидатов. Подробности и развилки R1–R7 — в `context/architecture/adr-002-verification-example-flow.md`.
+
+🟡 **Verification Example** — это эталонный узел Figma (фрейм / секция / компонент / layout), выбранный пользователем на холсте, из которого плагин парсит набор слотов с привязанными токенами. При сканировании детектор использует эти слоты как первичный источник кандидатов вместо полной палитры. Эталон **глобальный, один на файл** (R7), хранится в `figma.clientStorage` под ключом `'example-current'`, переживает reopen плагина и смену страницы. ⠀ _Реализация: `src/sandbox/exampleParser.ts → parseExample`, `src/shared/types.ts → Example`._ ⠀ _См. также: Example Slot, SlotRole, ExampleScope._
+
+🟡 **Example Slot** — это запись об одном «месте использования токена» в эталоне: сочетание `slotKind` (`'fill' | 'stroke' | 'text-style' | 'spacing' | 'radius'`), `tokenId`, `tokenName`, `hexInTheme` и `role` (см. SlotRole). Парсер собирает массив `Example.slots` рекурсивным обходом узла-эталона на глубину ≤ 5 уровней и ≤ 50 нод. ⠀ _Реализация: `src/shared/types.ts → ExampleSlot`._ ⠀ _См. также: Verification Example, SlotRole._
+
+🟡 **SlotRole** — это семантическая роль слота эталона: одно из значений `'background' | 'text' | 'icon' | 'border' | 'shadow' | 'unknown'`. Введена в Ф.18.13 для multi-slot ranking — детектор сопоставляет нарушение с подходящими по роли слотами эталона, а не с первым по `slotKind`. Старые persisted Example без `role` мигрируются через `?? 'unknown'`. ⠀ _Реализация: `src/shared/types.ts → SlotRole`._ ⠀ _См. также: Example Slot, Multi-slot ranking, inferRole, inferViolationRole._
+
+🟡 **Multi-slot ranking** — это операция в детекторе, при которой все слоты эталона с совпадающими `slotKind + role` помещаются в `Violation.candidates` (объединяются с top-N от старой логики `pickTopCandidates`, дедуплицируются по `tokenId`, лимит 10). При пустом матче по role — fallback на старую логику без изменений. Решает кейс «ContextMenu с 5 background-fills под разные состояния, детектор раньше подставлял первый». ⠀ _Реализация: `src/sandbox/detector.ts → applyExampleOverride`, `findExampleSlotsByRole`._ ⠀ _См. также: SlotRole, applyExampleOverride, inferViolationRole._
+
+🟡 **inferRole** — это helper в парсере, определяющий `SlotRole` для слота эталона на этапе сборки `Example`. Логика по приоритету: textStyle → 'text', `nodeType === 'TEXT'` → 'text', `paintTarget === 'stroke'` → 'border', имя токена (substring `'background'` / `'icon'` / `'shadow'` / `'border'`), default 'background' для shape-fill, иначе 'unknown'. Статическая эвристика без AI — намеренно. ⠀ _Реализация: `src/sandbox/exampleParser.ts → inferRole`._ ⠀ _См. также: SlotRole, inferViolationRole._
+
+🟡 **inferViolationRole** — это helper в детекторе, определяющий `SlotRole` для нарушения на основе `violation.type` + `scannedColor.nodeType` + `scannedColor.paintTarget`. Используется для поиска совпадающих по роли слотов эталона. Возвращает `'unknown'` для типов, у которых multi-slot не реализован (`spacing_off_scale`). ⠀ _Реализация: `src/sandbox/detector.ts → inferViolationRole`._ ⠀ _См. также: SlotRole, Multi-slot ranking, inferRole._
+
+🟡 **applyExampleOverride** — это функция детектора, применяющая эталон как priority override при подборе кандидатов. На вход — нарушение, текущий эталон, snapshot, scannedColor. Вычисляет роль нарушения, ищет подходящие слоты, объединяет/дедуплицирует с top-N от старой логики, проставляет `Violation.exampleSlot` и переопределяет `suggestedToken`/`suggestedTokenId`. ⠀ _Реализация: `src/sandbox/detector.ts → applyExampleOverride`._ ⠀ _См. также: Multi-slot ranking, Example Slot._
+
+🟡 **ExampleScope** — это режим выбора эталона: одно из значений `'selection' | 'section' | 'component' | 'layout'`. С шага 18.12 в режиме `'selection'` парсер обходит **поддерево** выбранного узла, не только сам узел (глубина ≤ 5, count ≤ 50). Режим `'layout'` в Ф.18a — заглушка, парсинг отложен в Ф.18b. ⠀ _Реализация: `src/shared/types.ts → ExampleScope`, `src/ui/components/VerificationExample.tsx`._ ⠀ _См. также: Verification Example._
+
+🟡 **Слепое окно (Slept window)** — это период между шагами 18.13.1 и 18.13.4, в который `tsc --noEmit` намеренно красный в `exampleParser.ts` / `scanner.ts` / `detector.ts` (после расширения типов `ExampleSlot.role` и `ScannedColor.nodeType`/`paintTarget`), а сборка `npm run build` не запускается. Техника принята `@lead-architect` для шага 18.13: компилятор подсвечивает все места, требующие правки, заставляя проходить всю цепочку без промежуточных «костыльных» `??`-затычек. Закрывается шагом 18.13.4 (`applyExampleOverride` + `inferViolationRole`). ⠀ _Реализация: процессное соглашение, не код._ ⠀ _См. также: Multi-slot ranking._
+
 ---
 
 # Антипаттерны и ложные синонимы
@@ -194,7 +216,7 @@ ____
 
 # История изменений терминологии
 
-**v1.0 (Ф.16.4)** — введён термин **Dashboard** (агрегатор нарушений по категориям, файл `Dashboard.tsx`); зафиксировано расхождение с именем фрейма макета `ReviewFix` (148:12219). ⠀ **v1.0 (Ф.14)** — удалён термин **Health Score** (метрика 0→0 на малых ДС, неинтерпретируема). ⠀ **v0.13.4 (Ф.12)** — введено понятие **симметричного протокола** Plugin message (ответ из catch-ветки обязателен). ⠀ **v0.11.9 (Ф.11)** — уточнена семантика **Undo**: `commitUndo` вызывается ДО мутации. ⠀ **v0.11.5 (Ф.11)** — введён термин **Preview** (только «До»; «После» отложено в v1.1). ⠀ **v0.11.0 (Ф.11)** — миграция AI-слоя: `anthropic-api-key` → `google-api-key`. Старое имя ⚫ устаревшее. ⠀ **v0.11.1 (Ф.11)** — введён термин **Candidates** (массив топ-N кандидатов в Violation).
+**v0.18.0-alpha (Ф.18a + Ф.18.13)** — введена группа **Эталон в кадре**: Verification Example, Example Slot, SlotRole, Multi-slot ranking, inferRole, inferViolationRole, applyExampleOverride, ExampleScope, Слепое окно (Slept window). Все термины — 🟡, переводятся в 🟢 после прогона Ф.18b и QA-цикла на тест-матрице 6×3×3×2. ⠀ **v1.0 (Ф.16.4)** — введён термин **Dashboard** (агрегатор нарушений по категориям, файл `Dashboard.tsx`); зафиксировано расхождение с именем фрейма макета `ReviewFix` (148:12219). ⠀ **v1.0 (Ф.14)** — удалён термин **Health Score** (метрика 0→0 на малых ДС, неинтерпретируема). ⠀ **v0.13.4 (Ф.12)** — введено понятие **симметричного протокола** Plugin message (ответ из catch-ветки обязателен). ⠀ **v0.11.9 (Ф.11)** — уточнена семантика **Undo**: `commitUndo` вызывается ДО мутации. ⠀ **v0.11.5 (Ф.11)** — введён термин **Preview** (только «До»; «После» отложено в v1.1). ⠀ **v0.11.0 (Ф.11)** — миграция AI-слоя: `anthropic-api-key` → `google-api-key`. Старое имя ⚫ устаревшее. ⠀ **v0.11.1 (Ф.11)** — введён термин **Candidates** (массив топ-N кандидатов в Violation).
 
 ---
 
