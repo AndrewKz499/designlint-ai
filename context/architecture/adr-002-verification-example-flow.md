@@ -125,6 +125,44 @@ PO в Figma desktop протестировал v0.17 на собственных
 
 **Статус: решено R7.B — один глобальный эталон на файл.** Решение PO в чате с Координатором (ход с разбором развилок R3/R5/R7). Эталон хранится в `figma.clientStorage` под ключом `'example-current'` — это единственный источник истины. Кнопка «Добавить пример» из макетов = «перезаписать текущий эталон», не «добавить второй». R7 закрывает R2 автоматически: при одном эталоне конфликтов источников нет.
 
+## Семантика scope
+
+Уточнения к режимам `ExampleScope`, не вошедшие в исходную формулировку семи развилок.
+
+- **`'selection'` (с шага 18.12).** Парсер обходит **поддерево** выбранного узла, а не только сам узел. Глубина рекурсии ограничена `depth ≤ 5`, общее число обработанных нод — `count ≤ 50`. Это устраняет случай «эталон выбран — слотов 0», когда узел сам по себе не имеет fills/strokes/textStyles, но содержит дочерние ноды с токенами (типичный случай — Frame с детьми).
+- **`'selection'` (с шага 18.13).** Каждый собранный `ExampleSlot` получает обязательное поле `role: SlotRole` — семантическую роль, выведенную парсером по `nodeType + paintTarget`. Детектор Multi-slot ranking использует этот role как первичный критерий совпадения нарушения со слотом эталона. Migration legacy-example из clientStorage — через `?? 'unknown'` при чтении.
+- **`'section'`** — узел типа `SECTION`. Та же логика поддерева, что и в `'selection'`.
+- **`'component'`** — узел типа `COMPONENT/COMPONENT_SET/INSTANCE`. В Ф.18a unpublished components парсятся как обычные (R6 отложена). Если `tokenName === null` — fallback `"Unnamed token (#${hex})"`.
+- **`'layout'`** — заглушка, парсинг отложен в Ф.18b. handler возвращает `error: 'no-tokens-found'`.
+
+## Открытые вопросы
+
+Зафиксировано Product Owner после прогона `v0.18.0-alpha` в Figma desktop (сценарии S1-S4) — это **наблюдения для Ф.18b/v1.x**, **не блокеры релиза alpha-билда**. Каждый пункт — кандидат на отдельный шаг или развилку при сборке Ф.18b.
+
+### Q1 — Frame-as-icon detection
+
+Frame с именем «Icon» (или другие icon-frame) попадает в детектор как `role: 'background'` по умолчанию (из-за `nodeType=FRAME`, `paintTarget=fill`). Эвристика по имени узла («содержит ли name подстроку icon/glyph/symbol») отложена в Ф.18b. Это закрывает E3 как known-limitation в Ф.18a.
+
+### Q2 — Дропдаун AI suggestion скрывается при пустых `current.candidates`
+
+В ReportView, если у текущего нарушения `candidates` пуст (нет ни одного matched токена через component-aware narrowing + role-based filter), весь дропдаун со списком токенов **не рендерится**, и пользователь теряет возможность ручного выбора через search. Ожидаемое поведение — показать дропдаун с пустой первичной секцией и доступным search над всеми snapshot.tokens. Кандидат на R-развилку Ф.18b (поведение пустого candidates).
+
+### Q3 — Stroke не сканируется в `scanner.ts`
+
+`scanner.ts` обходит только `node.fills`, не `node.strokes`. Детектор Multi-slot ranking имеет роль `'border'` в `SlotRole`, но без сканирования stroke-нарушений она не используется — слоты эталона с role='border' остаются «висящими». Ф.18b — расширить scanner на stroke-нарушения (Type-Up: новый тип `ScannedStroke` или поле в `ScannedColor`).
+
+### Q4 — Spacing/radius multi-slot отложен
+
+`inferRole` для `slotKind` `'spacing'` и `'radius'` всегда возвращает `'unknown'`, потому что нет однозначного маппинга `slotKind → SlotRole` для не-color слотов (spacing — это не background, не text, не border). Multi-slot ranking для spacing/radius — открытый вопрос Ф.18b/v1.x: либо вводим параллельную таксономию ролей для пространственных слотов (`'gap'`, `'padding'`, `'corner-radius'`), либо оставляем для них старое поведение «hex-distance» без role-фильтра.
+
+### Q5 — Vite minify-конфиг (JSDoc не strip в production)
+
+Финальный размер `dist/ui.js` — **697 237 B** (697.24 KB), на ~16 KB больше предварительной оценки PO (~680.9 KB). Возможная причина — добавление многострочных JSDoc-комментариев в Ф.17/Ф.18a/Ф.18.13 (`scanner.ts`, `detector.ts`, `types.ts`, `Header.tsx`, `App.tsx`), которые Vite minify не стрипает по умолчанию. Конкретная задача Ф.18b cleanup (новая, появилась из 18.12): включить `terser` с `format.comments: false` или `legalComments: 'none'` в конфиге, замерить дельту.
+
+### Naming-debt: `pushUniqueSlot.seenIds` → `seenKeys`
+
+Внутри `exampleParser.ts` локальная переменная `seenIds` фактически содержит композитные ключи (не tokenId). Переименование в `seenKeys` — чистка Ф.18b. Не блокер, но в коде висит как «лажа в имени».
+
 ## Точка проверки концепции (после Ф.18a, перед Ф.18b)
 
 PO запускает alpha-билд `v0.18.0-alpha` в Figma desktop и проходит три сценария, сравнивая с поведением v0.17 (текущий main). Полное описание сценариев — в `context/sprints/F18a-verification-example-step.md`, раздел 3. Здесь — чеклист, по которому PO решит «продолжать в Ф.18b или останавливать».
@@ -195,9 +233,34 @@ PO запускает alpha-билд `v0.18.0-alpha` в Figma desktop и про�
 
 ## Связанные коммиты
 
-Заполняется по мере реализации Ф.18a. На момент создания ADR — пусто.
+Финальная сборка Ф.18a + Ф.18.13 для `v0.18.0-alpha` собрана за 6 коммитов
+(Вариант 2 — атомарное разделение по темам), коммиты в обратном
+хронологическом порядке (последний — bump версии):
 
-- (TBD) Ф.18a.18.1 — `feat: ADR-002 verification example flow`.
-- (TBD) Ф.18a.18.2 — `feat: extend PluginMessage with Example types`.
-- (TBD) Ф.18a финал — `feat: verification example flow alpha (Ф.18a)` — `v0.18.0-alpha`.
-- (TBD) Ф.18b финал — `feat: verification example flow (Ф.18)` — `v0.18.0`.
+- `f24c52b` — `chore: bump version to 0.18.0-alpha` (синхронизация
+  package.json + aboutVersion в strings.ts; manifest.json не содержит
+  поле version по проектному соглашению).
+- `7606cea` — `feat(F.18a): UI — verification example flow`
+  (VerificationExample экран, App.tsx маршрут, Header chip,
+  Dashboard «vs example», SelectField search-dropdown F.17.7
+  бонусом, library локализация Ф.16.6.5).
+- `e16f66e` — `feat(F.18a+18.13): verification example backend +
+  multi-slot ranking` (exampleParser.ts, types Example/ExampleSlot/
+  SlotRole, code.ts handlers, detector applyExampleOverride +
+  inferViolationRole, scanner nodeType+paintTarget, glossary,
+  ADR-002 в исходном виде).
+- `de379a1` — `feat(F.17): component-aware AI suggestions + 17.12
+  search filter` (markers.ts performance-фикс, aiClient AbortSignal,
+  ReportView componentContext + 17.12 фильтр VIOLATION_CATEGORY,
+  удаление ReviewFix.tsx и ScanDesignSystem.tsx).
+- `1f8cf03` — `chore(F.16.6.5): library sources discovery (single-
+  select)` (sourcePreferences.ts, designSystemParser library API,
+  manifest teamlibrary permission).
+- `b7383c0` — `feat(F.16): redesign Home/Dashboard/Done/ReadyToScan
+  + UI primitives` (новые экраны, BackButton/Radio, Button/Tag/
+  IconButton/Checkbox обновления, tokens.ts чистка).
+
+Будущие коммиты:
+
+- (TBD) Ф.18b финал — `feat: verification example flow (Ф.18)` —
+  `v0.18.0` (после успеха alpha-проверки концепции PO в Figma desktop).
