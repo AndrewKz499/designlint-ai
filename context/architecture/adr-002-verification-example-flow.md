@@ -135,6 +135,31 @@ PO в Figma desktop протестировал v0.17 на собственных
 - **`'component'`** — узел типа `COMPONENT/COMPONENT_SET/INSTANCE`. В Ф.18a unpublished components парсятся как обычные (R6 отложена). Если `tokenName === null` — fallback `"Unnamed token (#${hex})"`.
 - **`'layout'`** — заглушка, парсинг отложен в Ф.18b. handler возвращает `error: 'no-tokens-found'`.
 
+## Known behaviours
+
+### Known behaviour: uniform cornerRadius применяется как 4 биндинга
+
+Figma Plugin API не предоставляет `'cornerRadius'` как атомарный `VariableBindableNodeField` — биндить переменную можно только к индивидуальным углам (`topLeftRadius`, `topRightRadius`, `bottomLeftRadius`, `bottomRightRadius`).
+
+Поведение `fixer.ts` в Ф.18b.1.5: при `ScannedRadius.corner='uniform'` и `field='cornerRadius'` (R2.A в формулировке шага) fixer внутри разворачивает один Fix в **четыре** вызова `setBoundVariable` — один и тот же variable применяется ко всем четырём угловым полям одновременно.
+
+Семантически результат корректен: `node.cornerRadius` getter возвращает значение токена, визуально все 4 угла одинаковые. Но в `node.boundVariables.*` отображается **4 биндинга вместо одного** (по одному на каждый угол).
+
+Принято Product Owner 2026-05-10 как baseline для v1.0. Альтернатива — «UI шлёт 4 отдельных `fix-violation` для uniform» — была отклонена: нарушила бы паттерн «один Fix = одно сообщение» (см. принцип симметрии `PluginMessage` в CLAUDE.md) и усложнила undo (4 шага вместо одного на uniform-фикс).
+
+### Known behaviour: B1 secondary-matcher для spacing-токенов
+
+Введён в Ф.18b.1 (2026-05-11). `ExampleSlot` получает опциональное поле `spacingField: 'paddingLeft' | 'paddingRight' | 'paddingTop' | 'paddingBottom' | 'itemSpacing' | 'counterAxisSpacing' | undefined`. Поле подсказывает `findExampleSlot`, какой именно слот эталона предпочесть для нарушения spacing.
+
+Алгоритм матчинга в три tier'а:
+- **Tier 1** — точное совпадение `slotKind === 'spacing' && role === 'spacing' && spacingField === violationField`.
+- **Tier 2** — bucket-совпадение через `bucketOf(field)`: paddingLeft/Right попадают в bucket `'padding-horizontal'`, paddingTop/Bottom — в `'padding-vertical'`, itemSpacing/counterAxisSpacing — в `'gap'`. Tier 2 выбирает слот, чей `spacingField` попадает в тот же bucket.
+- **Tier 3 (fallback)** — любой слот с `slotKind === 'spacing'` без учёта `spacingField`. Сохраняет backward-compat для snapshot, собранных до Ф.18b.1.
+
+Radius сохраняет унифицированную роль (R-spacing.3.A): для всех четырёх углов и uniform используется единый `slotKind === 'radius'` без secondary-matcher.
+
+Прецедент в коде — Ф.18b.1.4.D1 (2026-05-11): `ExampleSlot.spacingField` в `types.ts`, `pushUniqueSlot` дедуп с учётом `spacingField`, `collectLayoutSlots` пишет `spacingField`, `bucketOf`/`findExampleSlot`/`applyExampleOverride` в `detector.ts`. Тест-кейс в Figma desktop — AltaIDE/ButtonPrimary (`18773:210470`), padding 7×7×13×13 → 12/12/4/4 с корректным подбором `Buttons/hPadding` и `Buttons/Primary/vPadding`.
+
 ## Открытые вопросы
 
 Зафиксировано Product Owner после прогона `v0.18.0-alpha` в Figma desktop (сценарии S1-S4) — это **наблюдения для Ф.18b/v1.x**, **не блокеры релиза alpha-билда**. Каждый пункт — кандидат на отдельный шаг или развилку при сборке Ф.18b.
@@ -151,9 +176,11 @@ Frame с именем «Icon» (или другие icon-frame) попадает
 
 `scanner.ts` обходит только `node.fills`, не `node.strokes`. Детектор Multi-slot ranking имеет роль `'border'` в `SlotRole`, но без сканирования stroke-нарушений она не используется — слоты эталона с role='border' остаются «висящими». Ф.18b — расширить scanner на stroke-нарушения (Type-Up: новый тип `ScannedStroke` или поле в `ScannedColor`).
 
-### Q4 — Spacing/radius multi-slot отложен
+### Q4 — Spacing/radius multi-slot отложен — закрыт в Ф.18b.1 (2026-05-10)
 
 `inferRole` для `slotKind` `'spacing'` и `'radius'` всегда возвращает `'unknown'`, потому что нет однозначного маппинга `slotKind → SlotRole` для не-color слотов (spacing — это не background, не text, не border). Multi-slot ranking для spacing/radius — открытый вопрос Ф.18b/v1.x: либо вводим параллельную таксономию ролей для пространственных слотов (`'gap'`, `'padding'`, `'corner-radius'`), либо оставляем для них старое поведение «hex-distance» без role-фильтра.
+
+**Закрыт в Ф.18b.1 (2026-05-10).** Решение PO: для v1.0 оставлено старое поведение «hex/value-distance» без role-фильтра. Реализация fixer для uniform cornerRadius зафиксирована в разделе «Known behaviours» выше (4 биндинга на 4 угла, baseline принят PO 2026-05-10). Параллельная таксономия ролей для пространственных слотов — материал для v1.1.
 
 ### Q5 — Vite minify-конфиг (JSDoc не strip в production)
 
