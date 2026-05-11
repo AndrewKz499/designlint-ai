@@ -1,4 +1,11 @@
-import type { ScannedColor, ScannedText, ScanResult, ScanScope } from '../shared/types';
+import type {
+  ScannedColor,
+  ScannedRadius,
+  ScannedSpacing,
+  ScannedText,
+  ScanResult,
+  ScanScope,
+} from '../shared/types';
 
 // Ноды с такими префиксами в имени полностью исключаются из
 // сканирования вместе со всеми детьми (типичные префиксы для
@@ -44,6 +51,8 @@ function resolveStyleName(styleId: string | symbol, styleNames: { [id: string]: 
 interface ScanAccumulator {
   colors: ScannedColor[];
   texts: ScannedText[];
+  spacings: ScannedSpacing[];
+  radii: ScannedRadius[];
   totalNodesScanned: number;
   /**
    * IDs локальных Style-узлов, помеченных как `remote === true` (Ф.16.6.5).
@@ -170,6 +179,132 @@ function walkNode(
     }
   }
 
+  // --- Обработка spacing (Ф.18b шаг 1.2) ---
+  // Собираем только для auto-layout-фреймов (layoutMode !== 'NONE').
+  // padding-поля — числовые per-frame, figma.mixed на них не приходит.
+  // itemSpacing теоретически может быть mixed → guard через typeof === 'number'.
+  // counterAxisSpacing существует физически на любом frame, но Figma учитывает
+  // его только при layoutWrap === 'WRAP'. Без этого guard'а получим запись 0/null
+  // от ноды, где поле игнорируется.
+  if ('layoutMode' in node && node.layoutMode !== 'NONE') {
+    const spacingFields: Array<ScannedSpacing['field']> = [
+      'paddingLeft',
+      'paddingRight',
+      'paddingTop',
+      'paddingBottom',
+      'itemSpacing',
+    ];
+    for (let sfi = 0; sfi < spacingFields.length; sfi++) {
+      const field = spacingFields[sfi];
+      const raw = (node as unknown as { [k: string]: unknown })[field];
+      if (typeof raw !== 'number') continue;
+      const boundVariableId =
+        (node.boundVariables as { [k: string]: { id?: string } | undefined } | undefined)?.[field]
+          ?.id ?? null;
+      recordComponentToken(acc.componentTokenIndex, nextContext, boundVariableId);
+      acc.spacings.push({
+        nodeId: node.id,
+        nodeName: node.name,
+        pageId,
+        pageName,
+        value: raw,
+        field,
+        boundVariableId,
+        componentName: nextContext,
+      });
+    }
+    // counterAxisSpacing — только при WRAP.
+    if (
+      'counterAxisSpacing' in node &&
+      'layoutWrap' in node &&
+      (node as { layoutWrap?: string }).layoutWrap === 'WRAP'
+    ) {
+      const rawCounter = (node as unknown as { counterAxisSpacing?: unknown }).counterAxisSpacing;
+      if (typeof rawCounter === 'number') {
+        const boundVariableId =
+          (node.boundVariables as { counterAxisSpacing?: { id?: string } } | undefined)
+            ?.counterAxisSpacing?.id ?? null;
+        recordComponentToken(acc.componentTokenIndex, nextContext, boundVariableId);
+        acc.spacings.push({
+          nodeId: node.id,
+          nodeName: node.name,
+          pageId,
+          pageName,
+          value: rawCounter,
+          field: 'counterAxisSpacing',
+          boundVariableId,
+          componentName: nextContext,
+        });
+      }
+    }
+  }
+
+  // --- Обработка cornerRadius (Ф.18b шаг 1.2) ---
+  // R7.C (PO 2026-05-10): значения 0 в scanner не записываем — это фильтрует
+  // мусор от ELLIPSE/POLYGON и нод без скруглений (95% кейсов). Цена —
+  // нарушение «должен быть привязан к Radius/None=0» не фиксируется в v1.0.
+  if ('cornerRadius' in node) {
+    const cornerRadius = (node as unknown as { cornerRadius: unknown }).cornerRadius;
+    if (cornerRadius === figma.mixed) {
+      // Mixed: четыре отдельные записи. Индивидуальные поля живут на
+      // RectangleCornerMixin (не у всех нод с cornerRadius есть, например, у
+      // STAR/POLYGON их нет) — поэтому проверяем 'topLeftRadius' in node.
+      const cornerFields: Array<{ field: string; corner: ScannedRadius['corner'] }> = [
+        { field: 'topLeftRadius', corner: 'topLeft' },
+        { field: 'topRightRadius', corner: 'topRight' },
+        { field: 'bottomLeftRadius', corner: 'bottomLeft' },
+        { field: 'bottomRightRadius', corner: 'bottomRight' },
+      ];
+      for (let cfi = 0; cfi < cornerFields.length; cfi++) {
+        const { field, corner } = cornerFields[cfi];
+        if (!(field in node)) continue;
+        const raw = (node as unknown as { [k: string]: unknown })[field];
+        if (typeof raw !== 'number') continue;
+        if (raw === 0) continue; // R7.C
+        const boundVariableId =
+          (node.boundVariables as { [k: string]: { id?: string } | undefined } | undefined)?.[field]
+            ?.id ?? null;
+        recordComponentToken(acc.componentTokenIndex, nextContext, boundVariableId);
+        acc.radii.push({
+          nodeId: node.id,
+          nodeName: node.name,
+          pageId,
+          pageName,
+          value: raw,
+          corner,
+          boundVariableId,
+          componentName: nextContext,
+        });
+      }
+    } else if (typeof cornerRadius === 'number') {
+      if (cornerRadius !== 0) {
+        // R7.C
+        // На uniform cornerRadius binding в Figma всё равно живёт на индивидуальных
+        // углах (topLeftRadius/...), поэтому пробуем достать id оттуда; иначе null.
+        const bv = node.boundVariables as
+          | { [k: string]: { id?: string } | undefined }
+          | undefined;
+        const boundVariableId =
+          bv?.topLeftRadius?.id ??
+          bv?.topRightRadius?.id ??
+          bv?.bottomLeftRadius?.id ??
+          bv?.bottomRightRadius?.id ??
+          null;
+        recordComponentToken(acc.componentTokenIndex, nextContext, boundVariableId);
+        acc.radii.push({
+          nodeId: node.id,
+          nodeName: node.name,
+          pageId,
+          pageName,
+          value: cornerRadius,
+          corner: 'uniform',
+          boundVariableId,
+          componentName: nextContext,
+        });
+      }
+    }
+  }
+
   // --- Обработка текстовых нод ---
   if (node.type === 'TEXT') {
     // fontSize: figma.mixed кодируется как -1
@@ -239,6 +374,8 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
   const acc: ScanAccumulator = {
     colors: [],
     texts: [],
+    spacings: [],
+    radii: [],
     totalNodesScanned: 0,
     remoteStyleIds: new Set<string>(),
     componentTokenIndex: new Map<string, Set<string>>(),
@@ -262,6 +399,8 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
     return {
       colors: [],
       texts: [],
+      spacings: [],
+      radii: [],
       totalNodesScanned: 0,
       scanDurationMs: Date.now() - startTime,
       pagesScanned: 0,
@@ -351,6 +490,8 @@ export async function scanDocument(scope: ScanScope): Promise<ScanResult> {
   return {
     colors: acc.colors,
     texts: acc.texts,
+    spacings: acc.spacings,
+    radii: acc.radii,
     totalNodesScanned: acc.totalNodesScanned,
     scanDurationMs,
     pagesScanned,
