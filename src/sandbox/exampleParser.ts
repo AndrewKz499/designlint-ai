@@ -52,19 +52,26 @@ async function resolveStyleName(id: string, fallbackHex: string): Promise<string
 }
 
 /**
- * Добавляет слот в массив с дедупом по композитному ключу `tokenId|slotKind|role`.
- * Идемпотентно.
+ * Добавляет слот в массив с дедупом по композитному ключу
+ * `tokenId|slotKind|role|spacingField`. Идемпотентно.
  *
- * Ф.18a (шаг 18.13.2): ключ расширен с `tokenId` до `tokenId|slotKind|role`,
+ * Ф.18a (шаг 18.13.2): ключ был расширен с `tokenId` до `tokenId|slotKind|role`,
  * чтобы один и тот же tokenId, использованный в разных семантических ролях
  * (например, Brand/Primary как fill background И как stroke border), создавал
  * два **разных** слота — это разная семантика, нужная детектору для матчинга
  * по `role`. Без расширения multi-slot ranking терял бы border-вариант.
  *
+ * Ф.18b.1.4.D1 (B1, 2026-05-10): четвёртый сегмент `spacingField` — для
+ * spacing-слотов один и тот же tokenId, привязанный к разным полям эталона
+ * (paddingLeft vs paddingTop), должен оставаться двумя слотами с разным
+ * `spacingField`. Для color/text-style/radius slotKind поле всегда undefined —
+ * сегмент сериализуется как пустая строка `''` (НЕ `'undefined'`: implicit
+ * toString сломал бы дедуп).
+ *
  * `seenKeys` мутируется и должен жить в пределах одной сборки `Example`.
  */
 function pushUniqueSlot(slots: ExampleSlot[], seenKeys: Set<string>, slot: ExampleSlot): void {
-  const key = slot.tokenId + '|' + slot.slotKind + '|' + slot.role;
+  const key = slot.tokenId + '|' + slot.slotKind + '|' + slot.role + '|' + (slot.spacingField !== undefined ? slot.spacingField : '');
   if (seenKeys.has(key)) return;
   seenKeys.add(key);
   slots.push(slot);
@@ -81,6 +88,13 @@ function pushUniqueSlot(slots: ExampleSlot[], seenKeys: Set<string>, slot: Examp
  *  1. `slotKind === 'text-style'`        → 'text'        (типографика по определению).
  *  2. `paintTarget === 'stroke'`         → 'border'      (Q-microsoft).
  *  3. `node.type === 'TEXT'` + `'fill'`  → 'text'        (E2: цвет fill на TextNode — цвет ТЕКСТА).
+ *  3a. `slotKind === 'spacing'`        → 'spacing'      (Ф.18b.1.4: единая роль).
+ *  3b. `slotKind === 'radius'`         → 'radius'       (Ф.18b.1.4: единая роль).
+ *      Правила 3a/3b добавлены в Ф.18b.1.4 (2026-05-11): для slotKind='spacing'/'radius'
+ *      фиксируем единые роли 'spacing'/'radius' соответственно (см. R-spacing.1,
+ *      R-spacing.3 baseline step-документа Ф.18b Шаг 1). Substring-эвристика
+ *      по tokenName на них НЕ применяется: подстроки 'gap'/'padding' не должны
+ *      разбивать роль на варианты.
  *  4. Substring по tokenName (case-insensitive):
  *       contains 'background' → 'background'
  *       contains 'icon'       → 'icon'
@@ -88,8 +102,7 @@ function pushUniqueSlot(slots: ExampleSlot[], seenKeys: Set<string>, slot: Examp
  *       contains 'stroke' | 'border' → 'border' (страховка к правилу 2).
  *       contains 'text'       → 'text'   (страховка для `Text/Primary` на shape-узле).
  *  5. Shape-узел + slotKind='fill' → 'background' (E3: Frame-as-icon → background по умолчанию).
- *  6. default                       → 'unknown'  (включая slotKind='spacing'|'radius' —
- *                                                 multi-slot для них вне scope 18.13).
+ *  6. default                       → 'unknown'.
  *
  * `paintTarget` — `null` для не-paint слотов (text-style, radius, spacing),
  * `'fill'` или `'stroke'` для color-слотов.
@@ -110,6 +123,11 @@ function inferRole(
 
   // Правило 3.
   if (node.type === 'TEXT' && slotKind === 'fill') return 'text';
+
+  // Правила 3a/3b (Ф.18b.1.4): фиксируем единые роли для spacing/radius
+  // ДО substring-эвристики, чтобы 'gap'/'padding' не порождали варианты ролей.
+  if (slotKind === 'spacing') return 'spacing';
+  if (slotKind === 'radius') return 'radius';
 
   // Правило 4: substring-эвристика по tokenName.
   if (tokenName !== null && tokenName !== '') {
@@ -341,7 +359,9 @@ async function collectLayoutSlots(
   const bound = (node as { boundVariables?: Record<string, { id: string } | undefined> }).boundVariables;
   if (bound === undefined) return;
 
-  const layoutFields = [
+  // Ф.18b.1.4.D1 (B1, 2026-05-10): типизируем поле как union из ExampleSlot
+  // — это позволяет пробрасывать его в slot.spacingField без приведений.
+  const layoutFields: Array<NonNullable<ExampleSlot['spacingField']>> = [
     'itemSpacing',
     'counterAxisSpacing',
     'paddingLeft',
@@ -365,6 +385,7 @@ async function collectLayoutSlots(
       hexInTheme: valueStr,
       slotKind: 'spacing',
       role: inferRole(node, 'spacing', null, tokenName),
+      spacingField: field,
     });
   }
 }
