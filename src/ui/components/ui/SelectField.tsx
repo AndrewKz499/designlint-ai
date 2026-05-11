@@ -15,6 +15,14 @@ export interface SelectOption {
    * единая группа (backward compat).
    */
   section?: string;
+  /**
+   * Ф.18b (подшаг 1.8, R4.B): вторичный лейбл справа от основного `label`.
+   * Используется для numeric-токенов (spacing/radius) — показывает значение
+   * в пикселях, например `'16px'`, рядом с именем `'Spacing/M'`.
+   * Рендерится muted-цветом справа от label, перед badge. Для color/typography
+   * остаётся undefined — рендерится как раньше (backward compat).
+   */
+  secondaryLabel?: string;
 }
 
 interface Props {
@@ -244,6 +252,20 @@ export function SelectField({
     flexShrink: 0,
   };
 
+  // Ф.18b (подшаг 1.8, R4.B): secondaryLabel — muted-текст справа от label
+  // для numeric-токенов (например '16px' рядом с 'Spacing/M'). marginLeft:auto
+  // прижимает к правому краю; если есть badge, он окажется ещё правее, тоже
+  // с marginLeft:auto — но в реальной картинке у numeric-токенов badge один
+  // ('VAR' для variables), а у color/typography secondaryLabel undefined,
+  // конфликта в одном ряду нет. На случай совместного появления — badge всё
+  // равно ляжет правее за счёт порядка в DOM.
+  const secondaryLabelStyle: React.CSSProperties = {
+    fontSize: typography.body.fontSize,
+    color: colors.contentMuted,
+    marginLeft: 'auto',
+    flexShrink: 0,
+  };
+
   const dropdownStyle: React.CSSProperties = {
     position: 'absolute',
     top: '100%',
@@ -323,6 +345,7 @@ export function SelectField({
       <div style={selectStyle} onClick={() => setOpen(!open)}>
         {selected?.swatch && <div style={swatchStyle(selected.swatch)} />}
         <span style={valueStyle}>{selected?.label || placeholder || '—'}</span>
+        {selected?.secondaryLabel && <span style={secondaryLabelStyle}>{selected.secondaryLabel}</span>}
         {selected?.badge && <span style={badgeStyle}>{selected.badge}</span>}
         <svg
           width="12"
@@ -383,6 +406,7 @@ export function SelectField({
                 >
                   {opt.swatch && <div style={swatchStyle(opt.swatch)} />}
                   <span>{opt.label}</span>
+                  {opt.secondaryLabel && <span style={secondaryLabelStyle}>{opt.secondaryLabel}</span>}
                   {opt.badge && <span style={badgeStyle}>{opt.badge}</span>}
                 </div>
               );
