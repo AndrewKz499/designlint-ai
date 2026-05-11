@@ -283,18 +283,51 @@ export function App() {
     ? detection.violations.filter((v) => selectedCategories.has(VIOLATION_CATEGORY[v.type]))
     : [];
 
+  // Ф.18b.1.8.D1: для bulk-fix («Fix all») извлекаем `field` из violation.id
+  // тем же способом, что и одиночный handleFix в ReportView. Формат id (см.
+  // detector.makeViolationId):
+  //   'nodeId_spacing_off_scale:<paddingLeft|paddingRight|...|itemSpacing|counterAxisSpacing>'
+  //   'nodeId_radius_off_scale:<uniform|topLeft|topRight|bottomLeft|bottomRight>'
+  // Для radius corner-имена мапятся в Figma-поля (ADR-002): 'uniform' →
+  // 'cornerRadius' (fixer разворачивает в 4 биндинга). Для color/typography
+  // id без `:`, field остаётся undefined — fix-violation совместим с прежним
+  // контрактом (fixer проверяет field только для numeric-нарушений).
+  const RADIUS_CORNER_TO_FIELD: { [corner: string]: string } = {
+    uniform: 'cornerRadius',
+    topLeft: 'topLeftRadius',
+    topRight: 'topRightRadius',
+    bottomLeft: 'bottomLeftRadius',
+    bottomRight: 'bottomRightRadius',
+  };
+
+  function extractFieldForViolation(violationId: string, violationType: string): string | undefined {
+    const idx = violationId.lastIndexOf(':');
+    if (idx === -1) return undefined;
+    const suffix = violationId.slice(idx + 1);
+    if (violationType === 'radius_off_scale') {
+      return RADIUS_CORNER_TO_FIELD[suffix];
+    }
+    if (violationType === 'spacing_off_scale') {
+      return suffix;
+    }
+    return undefined;
+  }
+
   const handleBulkFix = () => {
     if (!detection) return;
     const toFix = filteredViolations.filter((v) => v.suggestedTokenId !== null);
     if (toFix.length === 0) return;
     const fixedNodeIds = new Set<string>();
     for (let i = 0; i < toFix.length; i++) {
+      const field = extractFieldForViolation(toFix[i].id, toFix[i].type);
       sendMessage({
         type: 'fix-violation',
         data: {
           nodeId: toFix[i].nodeId,
           tokenId: toFix[i].suggestedTokenId!,
           violationType: toFix[i].type,
+          // Ф.18b.1.8.D1: field для spacing/radius; undefined для color/typography.
+          field: field,
         },
       });
       fixedNodeIds.add(toFix[i].nodeId);
