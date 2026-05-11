@@ -38,6 +38,60 @@ export type TokenSource = 'styles' | 'variables' | 'both';
 /** Политика отбора токенов: только семантические (алиасные) или вся библиотека */
 export type TokenPolicy = 'semantic-only' | 'all-tokens';
 
+/**
+ * Ф.18b (шаг 1.1): найденное значение spacing в Figma-файле.
+ * Собирается scanner'ом только для auto-layout фреймов (`layoutMode !== 'NONE'`).
+ * Поле `field` различает 6 видов spacing-значений в одной ноде — это позволяет
+ * детектору создавать независимые `Violation` для каждого поля
+ * (id содержит `field` через `makeViolationId`).
+ */
+export interface ScannedSpacing {
+  /** ID ноды в Figma */
+  nodeId: string;
+  /** Имя ноды */
+  nodeName: string;
+  pageId: string;
+  pageName: string;
+  /** Числовое значение spacing в пикселях */
+  value: number;
+  /** Какое именно поле auto-layout ноды содержит это значение */
+  field:
+    | 'paddingLeft'
+    | 'paddingRight'
+    | 'paddingTop'
+    | 'paddingBottom'
+    | 'itemSpacing'
+    | 'counterAxisSpacing';
+  /** ID привязанной variable; null если значение задано напрямую (hardcoded) */
+  boundVariableId: string | null;
+  /** Name of nearest INSTANCE/COMPONENT containing this node (for component-aware AI narrowing). */
+  componentName?: string;
+}
+
+/**
+ * Ф.18b (шаг 1.1): найденное значение cornerRadius в Figma-файле.
+ * Собирается scanner'ом для нод со свойством `cornerRadius`. Если у ноды
+ * все четыре угла одинаковы — одна запись с `corner: 'uniform'`. Если
+ * `cornerRadius === figma.mixed` — четыре отдельные записи по углам.
+ * Фильтр `value > 0` (R7.C) — нули в scanner не записываются.
+ */
+export interface ScannedRadius {
+  /** ID ноды в Figma */
+  nodeId: string;
+  /** Имя ноды */
+  nodeName: string;
+  pageId: string;
+  pageName: string;
+  /** Числовое значение radius в пикселях */
+  value: number;
+  /** Какой угол описывает запись; 'uniform' — единое значение для всех четырёх углов */
+  corner: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'uniform';
+  /** ID привязанной variable; null если значение задано напрямую (hardcoded) */
+  boundVariableId: string | null;
+  /** Name of nearest INSTANCE/COMPONENT containing this node (for component-aware AI narrowing). */
+  componentName?: string;
+}
+
 /** Найденный текстовый элемент в Figma-файле */
 export interface ScannedText {
   /** ID ноды в Figma */
@@ -65,6 +119,20 @@ export interface ScannedText {
 export interface ScanResult {
   colors: ScannedColor[];
   texts: ScannedText[];
+  /**
+   * Ф.18b (шаг 1.1): найденные spacing-значения. Обязательное поле (R1.A,
+   * закрыто PO 2026-05-10): `ScanResult` не сериализуется в `clientStorage`,
+   * миграция не требуется, контракт чище. Scanner всегда инициализирует
+   * пустым массивом.
+   */
+  spacings: ScannedSpacing[];
+  /**
+   * Ф.18b (шаг 1.1): найденные cornerRadius-значения. Обязательное поле (R1.A,
+   * закрыто PO 2026-05-10): `ScanResult` не сериализуется в `clientStorage`,
+   * миграция не требуется, контракт чище. Scanner всегда инициализирует
+   * пустым массивом.
+   */
+  radii: ScannedRadius[];
   /** Общее количество просканированных нод */
   totalNodesScanned: number;
   /** Длительность сканирования в миллисекундах */
@@ -209,7 +277,9 @@ export type ViolationType =
   /** Размер шрифта не соответствует шкале из снепшота */
   | 'nonstandard_font_size'
   /** Spacing не кратен базовой шкале из снепшота */
-  | 'spacing_off_scale';
+  | 'spacing_off_scale'
+  /** Ф.18b (шаг 1.1, R-spacing.4): cornerRadius не входит в radius-шкалу снепшота */
+  | 'radius_off_scale';
 
 /** Серьёзность нарушения */
 export type Severity = 'critical' | 'warning' | 'info';
@@ -309,6 +379,12 @@ export interface ExampleSlot {
    * в шаге 18.13.5 через `?? 'unknown'` при чтении.
    */
   role: SlotRole;
+  /**
+   * Для slotKind='spacing': имя поля Figma-нода, к которому токен привязан
+   * в эталоне. Используется `findExampleSlot` как secondary-matcher для точности
+   * подбора. R-spacing.1-revisit, B1 baseline 2026-05-10. Для color/text/radius — undefined.
+   */
+  spacingField?: 'paddingLeft' | 'paddingRight' | 'paddingTop' | 'paddingBottom' | 'itemSpacing' | 'counterAxisSpacing';
 }
 
 /**
@@ -326,6 +402,10 @@ export type SlotRole =
   | 'icon'
   | 'border'
   | 'shadow'
+  /** Ф.18b (шаг 1.1, R-spacing.1): единая роль для всех spacing-слотов (paddings + gaps). */
+  | 'spacing'
+  /** Ф.18b (шаг 1.1, R-spacing.3): единая роль для всех radius-слотов (uniform + угловые). */
+  | 'radius'
   | 'unknown';
 
 /**
@@ -476,7 +556,20 @@ export type PluginMessage =
   // --- Review & Fix: пошаговое исправление нарушений ---
 
   /** UI просит sandbox применить токен/стиль к ноде */
-  | { type: 'fix-violation'; data: { nodeId: string; tokenId: string; violationType: ViolationType } }
+  | {
+      type: 'fix-violation';
+      data: {
+        nodeId: string;
+        tokenId: string;
+        violationType: ViolationType;
+        /**
+         * Имя поля для spacing/radius нарушений (paddingLeft, itemSpacing,
+         * cornerRadius, topLeftRadius, ...). Извлекается UI из violationId
+         * и передаётся в fixer. R2.A baseline Ф.18b.1 от 2026-05-10.
+         */
+        field?: string;
+      };
+    }
   /** Sandbox отвечает: исправление выполнено или не удалось */
   | { type: 'fix-complete'; data: { nodeId: string; success: boolean } }
   /** UI просит sandbox экспортировать PNG-превью ноды */
