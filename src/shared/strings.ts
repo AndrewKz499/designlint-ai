@@ -19,6 +19,7 @@ export const VIOLATION_CATEGORY: Record<ViolationType, Category> = {
   missing_text_style:    'typography',
   nonstandard_font_size: 'typography',
   spacing_off_scale:     'layout',
+  radius_off_scale:      'layout',
 };
 
 // ─── Violation titles in designer-friendly language ──────────────────────────
@@ -29,6 +30,7 @@ export const VIOLATION_TITLE: Record<ViolationType, string> = {
   missing_text_style:    'Missing text style',
   nonstandard_font_size: 'Off-scale font size',
   spacing_off_scale:     'Off-scale spacing',
+  radius_off_scale:      'Off-scale corner radius',
 };
 
 export const VIOLATION_HINT: Record<ViolationType, string> = {
@@ -38,6 +40,7 @@ export const VIOLATION_HINT: Record<ViolationType, string> = {
   missing_text_style:    'Text without a style: typography changes will need manual edits.',
   nonstandard_font_size: 'Font size is not on the typographic scale.',
   spacing_off_scale:     'Spacing does not fit the grid step.',
+  radius_off_scale:      'Corner radius does not fit the scale step.',
 };
 
 // ─── Design System sources ───────────────────────────────────────────────────
