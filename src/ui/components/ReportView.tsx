@@ -188,7 +188,20 @@ export function ReportView({ violations, onBack, onNavigateHome, onOpenSettings,
     // Кэша нет — запускаем AI
     let prompt: string;
     const tokenInfo = current.candidates?.find(c => c.id === selectedTokenId);
-    if (tokenInfo) {
+    if (current.type === 'spacing_off_scale' || current.type === 'radius_off_scale') {
+      // Ф.18b (подшаг 1.7): numeric-нарушения (spacing/radius off-scale).
+      // Формат currentValue зафиксирован backend в подшаге 1.3 как '<N>px'.
+      // Промпт лаконичный — для numeric-токенов длинный AI-ответ нерелевантен:
+      // нужно объяснение «16px ближе к ритму ДС, чем 14px», а не эссе.
+      // tokenName/tokenValue берутся из выбранного кандидата (selectedToken)
+      // или первого из current.candidates (fallback на случай рассинхрона).
+      const numericToken = tokenInfo
+        ?? (current.candidates && current.candidates.length > 0 ? current.candidates[0] : null);
+      if (!numericToken) return;
+      prompt = 'Value ' + current.currentValue + ' is not on the design system scale; ' +
+        'suggested `' + numericToken.name + '` = `' + numericToken.value + '`. ' +
+        'Explain in 1-2 short sentences why this token fits.';
+    } else if (tokenInfo) {
       // Случай: есть candidates (hardcoded_color, missing_text_style)
       prompt = 'Violation: ' + current.currentValue + ' on node "' + current.nodeName +
         '". Suggested token: "' + tokenInfo.name + '" with value ' + tokenInfo.value +
@@ -340,16 +353,53 @@ export function ReportView({ violations, onBack, onNavigateHome, onOpenSettings,
     setCurrentIndex((i) => Math.max(i - 1, 0));
   }, []);
 
+  // Ф.18b (подшаг 1.8, R2.A): извлекаем `field` из violationId для numeric-
+  // нарушений. Формат id задан scanner/detector через makeViolationId:
+  //   'nodeId_spacing_off_scale:paddingLeft'
+  //   'nodeId_radius_off_scale:topLeft' | 'uniform'
+  // Suffix после последнего ':' — это:
+  //   - для spacing: уже Figma-имя поля (paddingLeft, itemSpacing, ...)
+  //   - для radius: corner-имя ('uniform' | 'topLeft' | ...), которое нужно
+  //     смапить в Figma-имена через RADIUS_CORNER_TO_FIELD. Маппинг 'uniform'
+  //     → 'cornerRadius' — fixer разворачивает в 4 биндинга (ADR-002).
+  // Для color/typography нарушений id формат 'nodeId_<type>' (без `:`) —
+  // suffix не извлекается, field остаётся undefined (backward compat).
+  const RADIUS_CORNER_TO_FIELD: { [corner: string]: string } = {
+    uniform: 'cornerRadius',
+    topLeft: 'topLeftRadius',
+    topRight: 'topRightRadius',
+    bottomLeft: 'bottomLeftRadius',
+    bottomRight: 'bottomRightRadius',
+  };
+
+  function extractField(violationId: string, violationType: string): string | undefined {
+    const idx = violationId.lastIndexOf(':');
+    if (idx === -1) return undefined;
+    const suffix = violationId.slice(idx + 1);
+    if (violationType === 'radius_off_scale') {
+      return RADIUS_CORNER_TO_FIELD[suffix];
+    }
+    if (violationType === 'spacing_off_scale') {
+      return suffix;
+    }
+    return undefined;
+  }
+
   const handleFix = () => {
     if (current === null) return;
     const tokenId = selectedTokenId || current.suggestedTokenId;
     if (tokenId === null) return;
+    const field = extractField(current.id, current.type);
     sendMessage({
       type: 'fix-violation',
       data: {
         nodeId: current.nodeId,
         tokenId: tokenId,
         violationType: current.type,
+        // Ф.18b (подшаг 1.8): field передаётся только для spacing/radius;
+        // для color/typography остаётся undefined — fix-violation совместим
+        // с прежним контрактом (R2.A baseline).
+        field: field,
       },
     });
   };
@@ -420,6 +470,13 @@ export function ReportView({ violations, onBack, onNavigateHome, onOpenSettings,
   // Дедупликация: токены из (a) исключаются из (b) — top-5 имеет приоритет.
   // Если candidates пусты — секция (a) скрыта, отображается только search.
   // Если snapshot отсутствует — секция (b) пуста (старый сценарий, backward compat).
+  // Ф.18b (подшаг 1.8, R4.B): для numeric-нарушений (spacing/radius) опции
+  // содержат secondaryLabel = '<N>px' (например '16px' рядом с 'Spacing/M').
+  // Для color/typography secondaryLabel остаётся undefined — рендер без правок.
+  const isNumericViolation = current
+    ? current.type === 'spacing_off_scale' || current.type === 'radius_off_scale'
+    : false;
+
   const suggestionOptions: SelectOption[] = (() => {
     const out: SelectOption[] = [];
     const suggestedIds = new Set<string>();
@@ -431,6 +488,9 @@ export function ReportView({ violations, onBack, onNavigateHome, onOpenSettings,
           id: c.id,
           label: c.name,
           swatch: isColor ? c.value : undefined,
+          // Ф.18b (подшаг 1.8): для numeric — '<N>px' справа от label.
+          // c.value у spacing/radius-токенов хранится без 'px' (см. Token.value).
+          secondaryLabel: isNumericViolation ? c.value + 'px' : undefined,
           badge: c.kind === 'variables' ? 'VAR' : 'STYLE',
           section: 'suggested',
         });
@@ -479,10 +539,16 @@ export function ReportView({ violations, onBack, onNavigateHome, onOpenSettings,
       for (const t of sorted) {
         if (suggestedIds.has(t.id)) continue;  // дедуп: top-5 имеет приоритет
         const isColor = t.value.indexOf('#') === 0;
+        const isNumericToken = t.category === 'spacing' || t.category === 'radius';
         out.push({
           id: t.id,
           label: t.name,
           swatch: isColor ? t.value : undefined,
+          // Ф.18b (подшаг 1.8): для numeric-токенов в search-секции тоже
+          // показываем '<N>px' справа от label. Условие по Token.category, а
+          // не по типу нарушения, т.к. фильтр выше уже ограничил список
+          // токенов категориями spacing|radius для layout-нарушений.
+          secondaryLabel: isNumericToken ? t.value + 'px' : undefined,
           badge: t.kind === 'variables' ? 'VAR' : 'STYLE',
           section: 'search',
         });
@@ -526,9 +592,17 @@ export function ReportView({ violations, onBack, onNavigateHome, onOpenSettings,
       {/* Карточка нарушения */}
       {current !== null && (
         <div style={styles.card}>
-          {/* Склейка nodeName + hint + currentValue в один body-параграф */}
+          {/* Склейка nodeName + hint + currentValue в один body-параграф.
+              Ф.18b (подшаг 1.8): для numeric-нарушений (spacing/radius) контекст
+              про field (например 'paddingLeft 14px') уже зашит в current.message
+              backend'ом, поэтому показываем message целиком — не дублируем
+              currentValue, оно вошло в текст message. Для color/typography
+              остаётся прежний шаблон с hint + currentValue. */}
           <p style={styles.message}>
-            {current.nodeName}. {VIOLATION_HINT[current.type]} {current.currentValue}.
+            {isNumericViolation
+              ? <>{current.nodeName}. {current.message}</>
+              : <>{current.nodeName}. {VIOLATION_HINT[current.type]} {current.currentValue}.</>
+            }
           </p>
           <div style={styles.previewBox}>
             {previewLoading && (
