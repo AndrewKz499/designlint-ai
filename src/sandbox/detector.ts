@@ -79,6 +79,9 @@ function slotKindForViolation(type: ViolationType): ExampleSlot['slotKind'] | nu
   if (type === 'spacing_off_scale') {
     return 'spacing';
   }
+  if (type === 'radius_off_scale') {
+    return 'radius';
+  }
   return null;
 }
 
@@ -110,8 +113,30 @@ function inferViolationRole(
     return 'background';
   }
 
-  // (c)/(d) spacing и прочие — multi-slot вне scope 18.13.
+  // (c) Ф.18b (шаг 1.3, R-spacing.1): единая роль 'spacing' для всех spacing-полей.
+  if (violation.type === 'spacing_off_scale') return 'spacing';
+
+  // (d) Ф.18b (шаг 1.3, R-spacing.3): единая роль 'radius' для uniform и угловых radius.
+  if (violation.type === 'radius_off_scale') return 'radius';
+
   return 'unknown';
+}
+
+/**
+ * Ф.18b.1.4.D1 (B1, 2026-05-10): отображает имя spacing-поля в «бакет» —
+ * группу полей с одинаковой геометрической семантикой. Используется
+ * `findExampleSlot` для secondary-matcher: токен paddingLeft эталона
+ * матчится с нарушением paddingRight (оба — padding-horizontal), но НЕ
+ * с itemSpacing.
+ *
+ * Без `??` / `?.`: на любое неизвестное поле возвращаем пустую строку,
+ * которую `findExampleSlot` трактует как «бакет не задан, идти в Tier 2».
+ */
+function bucketOf(field: string): string {
+  if (field === 'paddingLeft' || field === 'paddingRight') return 'padding-horizontal';
+  if (field === 'paddingTop' || field === 'paddingBottom') return 'padding-vertical';
+  if (field === 'itemSpacing' || field === 'counterAxisSpacing') return 'gap';
+  return '';
 }
 
 /**
@@ -121,15 +146,45 @@ function inferViolationRole(
  * проставит role='unknown' старым слотам). При полном отсутствии матча по
  * slotKind — null, тогда `applyExampleOverride` отдаёт управление старой
  * логике pickTopCandidates (R-13.4=b).
+ *
+ * Ф.18b.1.4.D1 (B1, 2026-05-10): для `slotKind === 'spacing'` добавлен
+ * secondary-matcher по `contextField`. Три tiers:
+ *  - Tier 1 (только spacing с непустым contextField): слоты, у которых
+ *    `bucketOf(slot.spacingField)` совпадает с `bucketOf(contextField)`.
+ *    Slots без spacingField (legacy-example) в Tier 1 не попадают —
+ *    graceful degradation в Tier 2.
+ *  - Tier 2 (текущее поведение): exact match по slotKind+role.
+ *  - Tier 3 (fallback): role='unknown'.
+ *
+ * Tier 2 гарантирует backward compat для color/typography/legacy spacing.
  */
 function findExampleSlot(
   example: Example | null,
   kind: ExampleSlot['slotKind'],
   role: SlotRole,
+  contextField?: string,
 ): ExampleSlot[] | null {
   if (example === null) return null;
 
-  // 1. Точный матч по slotKind+role.
+  // Tier 1 — secondary-matcher по spacing-бакету (только для spacing-нарушений
+  // с известным contextField). Slots без spacingField сюда не попадают.
+  if (kind === 'spacing') {
+    const ctxBucket = contextField !== undefined && contextField !== '' ? bucketOf(contextField) : '';
+    if (ctxBucket !== '') {
+      const bucketMatch: ExampleSlot[] = [];
+      for (let i = 0; i < example.slots.length; i++) {
+        const s = example.slots[i];
+        if (s.slotKind !== kind) continue;
+        if (s.role !== role) continue;
+        if (s.spacingField === undefined) continue;
+        if (bucketOf(s.spacingField) !== ctxBucket) continue;
+        bucketMatch.push(s);
+      }
+      if (bucketMatch.length > 0) return bucketMatch;
+    }
+  }
+
+  // Tier 2 — точный матч по slotKind+role (поведение до B1).
   const exact: ExampleSlot[] = [];
   for (let i = 0; i < example.slots.length; i++) {
     if (example.slots[i].slotKind === kind && example.slots[i].role === role) {
@@ -138,7 +193,7 @@ function findExampleSlot(
   }
   if (exact.length > 0) return exact;
 
-  // 2. Fallback на role='unknown' (E5 graceful для legacy-example).
+  // Tier 3 — fallback на role='unknown' (E5 graceful для legacy-example).
   const unknown: ExampleSlot[] = [];
   for (let i = 0; i < example.slots.length; i++) {
     if (example.slots[i].slotKind === kind && example.slots[i].role === 'unknown') {
@@ -147,7 +202,7 @@ function findExampleSlot(
   }
   if (unknown.length > 0) return unknown;
 
-  // 3. Полное отсутствие матча — sentinel для перехода на pickTopCandidates.
+  // Полное отсутствие матча — sentinel для перехода на pickTopCandidates.
   return null;
 }
 
@@ -230,7 +285,19 @@ function applyExampleOverride(
   if (kind === null) return;
 
   const role = inferViolationRole(violation, scannedNode);
-  const matchedSlots = findExampleSlot(example, kind, role);
+
+  // Ф.18b.1.4.D1 (B1, 2026-05-10): для spacing-нарушений извлекаем поле из
+  // violation.id (формат: `<nodeId>_spacing_off_scale:<field>` — см.
+  // makeViolationId выше в detector.ts). Поле передаётся в findExampleSlot
+  // как secondary-matcher (Tier 1). Для radius_off_scale (R-spacing.3.A:
+  // единая роль) и других типов contextField остаётся undefined.
+  let contextField: string | undefined = undefined;
+  if (violation.type === 'spacing_off_scale') {
+    const idx = violation.id.lastIndexOf(':');
+    if (idx >= 0) contextField = violation.id.substring(idx + 1);
+  }
+
+  const matchedSlots = findExampleSlot(example, kind, role, contextField);
   if (matchedSlots === null) return; // R-13.4=b: fallback на pickTopCandidates.
 
   const primarySlot = matchedSlots[0];
@@ -484,6 +551,173 @@ export function runDetection(
             suggestedTokenId: null,
           });
         }
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Ф.18b (шаг 1.3): проверка spacing по шкале (spacing_off_scale)
+    //
+    // Условие нарушения: значение задано напрямую (boundVariableId === null),
+    // не равно нулю (R7-симметрия — `0` валидный «нет отступа», нарушением
+    // не считается) и не входит в `snapshot.scales.spacingScale`.
+    //
+    // Для каждого нарушения собирается топ-5 ближайших spacing-токенов по
+    // численной дистанции |value - parseFloat(token.value)|. Token.value
+    // для spacing — строка вида '8' без 'px'.
+    //
+    // R3.C: currentValue = '14px', весь контекст идёт в message.
+    // R-spacing.2: id содержит field, чтобы один nodeId мог иметь до 6
+    // независимых spacing-нарушений на разных полях.
+    // -----------------------------------------------------------------------
+
+    const spacingScale = snapshot.scales.spacingScale;
+    if (spacingScale.length > 0) {
+      // Извлекаем spacing-токены один раз.
+      const spacingTokens = [];
+      for (let i = 0; i < snapshot.tokens.length; i++) {
+        const t = snapshot.tokens[i];
+        if (t.category !== 'spacing') continue;
+        // Spacing всегда из Variables (Figma не имеет spacing-Styles).
+        if (t.kind !== 'variables') continue;
+        // Policy 'semantic-only': оставляем только isSemantic === true.
+        if (tokenPolicy === 'semantic-only' && t.isSemantic !== true) continue;
+        spacingTokens.push(t);
+      }
+
+      for (let i = 0; i < scanResult.spacings.length; i++) {
+        const sp = scanResult.spacings[i];
+        if (sp.boundVariableId !== null) continue;
+        if (sp.value === 0) continue; // 0 — валидный «нет отступа».
+
+        let inScale = false;
+        for (let j = 0; j < spacingScale.length; j++) {
+          if (spacingScale[j] === sp.value) {
+            inScale = true;
+            break;
+          }
+        }
+        if (inScale) continue;
+
+        // Топ-5 ближайших токенов по дистанции |value - parseFloat(token.value)|.
+        const scoredSp = [];
+        for (let k = 0; k < spacingTokens.length; k++) {
+          const tokenVal = parseFloat(spacingTokens[k].value);
+          if (isNaN(tokenVal)) continue;
+          scoredSp.push({ token: spacingTokens[k], dist: Math.abs(sp.value - tokenVal) });
+        }
+        scoredSp.sort(function (a, b) { return a.dist - b.dist; });
+        const topSp = pickTopCandidates(scoredSp, scanResult, sp.componentName);
+
+        let suggestedName: string | null = null;
+        let suggestedId: string | null = null;
+        let nearestPart = '';
+        if (topSp.length > 0) {
+          const bestSp = topSp[0].token;
+          suggestedName = bestSp.name;
+          suggestedId = bestSp.id;
+          nearestPart = ' Nearest: ' + bestSp.name + ' (' + bestSp.value + 'px)';
+        }
+
+        const spViolation: Violation = {
+          id: makeViolationId(sp.nodeId, 'spacing_off_scale' + ':' + sp.field),
+          type: 'spacing_off_scale',
+          severity: 'info',
+          nodeId: sp.nodeId,
+          nodeName: sp.nodeName,
+          pageId: sp.pageId,
+          pageName: sp.pageName,
+          message: sp.field + ' ' + sp.value + 'px does not fit the spacing scale.' + nearestPart,
+          currentValue: sp.value + 'px',
+          suggestedToken: suggestedName,
+          suggestedTokenId: suggestedId,
+        };
+        if (topSp.length > 0) {
+          spViolation.candidates = topSp.map(function (s) {
+            return { id: s.token.id, name: s.token.name, value: s.token.value, kind: s.token.kind };
+          });
+        }
+        violations.push(spViolation);
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Ф.18b (шаг 1.3): проверка cornerRadius по шкале (radius_off_scale)
+    //
+    // Условие нарушения: значение задано напрямую (boundVariableId === null)
+    // и не входит в `snapshot.scales.radiusScale`. Фильтр `value > 0`
+    // применён в scanner (R7.C), здесь повторно не отсеиваем — детектор
+    // позволяет 0 как валидное значение, если оно есть в шкале.
+    //
+    // R-spacing.4: id содержит corner ('uniform' / 'topLeft' / ...).
+    // -----------------------------------------------------------------------
+
+    const radiusScale = snapshot.scales.radiusScale;
+    if (radiusScale.length > 0) {
+      // Извлекаем radius-токены один раз.
+      const radiusTokens = [];
+      for (let i = 0; i < snapshot.tokens.length; i++) {
+        const t = snapshot.tokens[i];
+        if (t.category !== 'radius') continue;
+        if (t.kind !== 'variables') continue;
+        if (tokenPolicy === 'semantic-only' && t.isSemantic !== true) continue;
+        radiusTokens.push(t);
+      }
+
+      for (let i = 0; i < scanResult.radii.length; i++) {
+        const ra = scanResult.radii[i];
+        if (ra.boundVariableId !== null) continue;
+
+        let inScale = false;
+        for (let j = 0; j < radiusScale.length; j++) {
+          if (radiusScale[j] === ra.value) {
+            inScale = true;
+            break;
+          }
+        }
+        if (inScale) continue;
+
+        const scoredRa = [];
+        for (let k = 0; k < radiusTokens.length; k++) {
+          const tokenVal = parseFloat(radiusTokens[k].value);
+          if (isNaN(tokenVal)) continue;
+          scoredRa.push({ token: radiusTokens[k], dist: Math.abs(ra.value - tokenVal) });
+        }
+        scoredRa.sort(function (a, b) { return a.dist - b.dist; });
+        const topRa = pickTopCandidates(scoredRa, scanResult, ra.componentName);
+
+        let suggestedNameR: string | null = null;
+        let suggestedIdR: string | null = null;
+        let nearestPartR = '';
+        if (topRa.length > 0) {
+          const bestRa = topRa[0].token;
+          suggestedNameR = bestRa.name;
+          suggestedIdR = bestRa.id;
+          nearestPartR = ' Nearest: ' + bestRa.name + ' (' + bestRa.value + 'px)';
+        }
+
+        // R3.C-формулировка: для 'uniform' — 'cornerRadius', для остальных —
+        // '<corner>Radius' (topLeftRadius, topRightRadius и т.д.).
+        const fieldLabel = ra.corner === 'uniform' ? 'cornerRadius' : ra.corner + 'Radius';
+
+        const raViolation: Violation = {
+          id: makeViolationId(ra.nodeId, 'radius_off_scale' + ':' + ra.corner),
+          type: 'radius_off_scale',
+          severity: 'info',
+          nodeId: ra.nodeId,
+          nodeName: ra.nodeName,
+          pageId: ra.pageId,
+          pageName: ra.pageName,
+          message: fieldLabel + ' ' + ra.value + 'px does not fit the radius scale.' + nearestPartR,
+          currentValue: ra.value + 'px',
+          suggestedToken: suggestedNameR,
+          suggestedTokenId: suggestedIdR,
+        };
+        if (topRa.length > 0) {
+          raViolation.candidates = topRa.map(function (s) {
+            return { id: s.token.id, name: s.token.name, value: s.token.value, kind: s.token.kind };
+          });
+        }
+        violations.push(raViolation);
       }
     }
   }
