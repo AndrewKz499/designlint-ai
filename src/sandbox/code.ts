@@ -390,7 +390,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       // чтобы Fix попал в свежую изолированную группу,
       // которую Cmd+Z сможет откатить одним нажатием
       figma.commitUndo();
-      var success = await fixViolation(msg.data.nodeId, msg.data.tokenId, msg.data.violationType);
+      var success = await fixViolation(msg.data.nodeId, msg.data.tokenId, msg.data.violationType, msg.data.field);
       if (!success) {
         figma.notify('Не удалось применить токен. Попробуйте другой кандидат.', { error: true });
       }
