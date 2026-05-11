@@ -228,6 +228,7 @@ async function resolveAlias(
     try {
       const target = await figma.variables.getVariableByIdAsync((value as { id: string }).id);
       if (!target) return null;
+      // TODO Ф.18b R4: использовать collection.defaultModeId после внедрения сквозного mode-aware подбора
       const targetModeValues = Object.values(target.valuesByMode);
       if (targetModeValues.length === 0) return null;
       return await resolveAlias(targetModeValues[0], depth + 1);
@@ -243,18 +244,77 @@ const IMPORT_BATCH_SIZE = 20;
 const IMPORT_BATCH_DELAY_MS = 50;
 
 /**
+ * Рекурсивно разрешает алиас FLOAT-переменной до числового значения.
+ * Защита от циклов: глубина не более 5 уровней (тот же лимит, что у resolveAlias для COLOR).
+ * Возвращает null, если алиас не резолвится (битая ссылка / цикл / не число).
+ *
+ * При обходе используется defaultModeId коллекции целевой переменной,
+ * чтобы значение бралось детерминированно (паттерн Object.values(...)[0] нестабилен
+ * при multi-mode коллекциях).
+ */
+async function resolveFloatAlias(
+  variableId: string,
+  depth: number,
+  fallbackModeId: string,
+): Promise<number | null> {
+  if (depth > 5) return null;
+  let target: Variable | null;
+  try {
+    target = await figma.variables.getVariableByIdAsync(variableId);
+  } catch {
+    return null;
+  }
+  if (target === null) return null;
+
+  // Берём defaultModeId целевой коллекции; если не удалось — используем fallbackModeId.
+  let modeId = fallbackModeId;
+  try {
+    const targetCollection = await figma.variables.getVariableCollectionByIdAsync(
+      target.variableCollectionId,
+    );
+    if (targetCollection !== null) {
+      modeId = targetCollection.defaultModeId;
+    }
+  } catch {
+    /* используем fallbackModeId */
+  }
+
+  let raw = target.valuesByMode[modeId];
+  if (raw === undefined) {
+    // Если по умолчанию mode не найден — берём первый доступный (защита от рассинхрона).
+    const modeValues = Object.values(target.valuesByMode);
+    if (modeValues.length === 0) return null;
+    raw = modeValues[0];
+  }
+
+  if (typeof raw === 'number') return raw;
+
+  if (typeof raw === 'object' && raw !== null && 'type' in raw && (raw as { type: string }).type === 'VARIABLE_ALIAS') {
+    const nextId = (raw as { id: string }).id;
+    if (typeof nextId !== 'string') return null;
+    return await resolveFloatAlias(nextId, depth + 1, modeId);
+  }
+
+  return null;
+}
+
+/**
  * Маппит импортированную Variable → Token.
  * Возвращает null, если variable не удалось обработать (нерезолвимый алиас, не COLOR/FLOAT).
+ *
+ * defaultModeId — id mode коллекции, к которой принадлежит variable. Используется
+ * для детерминированного выбора значения из valuesByMode (вместо Object.values(...)[0],
+ * который нестабилен при multi-mode коллекциях).
  */
 async function variableToToken(
   variable: Variable,
   sourceName: string,
   libraryName: string | undefined,
+  defaultModeId: string,
 ): Promise<Token | null> {
   if (variable.resolvedType === 'COLOR') {
-    const modeValues = Object.values(variable.valuesByMode);
-    if (modeValues.length === 0) return null;
-    const raw = modeValues[0];
+    const raw = variable.valuesByMode[defaultModeId];
+    if (raw === undefined) return null;
     const isAlias =
       typeof raw === 'object' &&
       raw !== null &&
@@ -274,19 +334,41 @@ async function variableToToken(
     };
   }
   if (variable.resolvedType === 'FLOAT') {
-    const modeValues = Object.values(variable.valuesByMode);
-    if (modeValues.length === 0) return null;
-    const raw = modeValues[0];
-    if (typeof raw !== 'number') return null;
-    return {
-      id: variable.id,
-      name: variable.name,
-      category: floatCategory(variable.name),
-      value: String(raw),
-      source: sourceName,
-      kind: 'variables',
-      libraryName,
-    };
+    const raw = variable.valuesByMode[defaultModeId];
+    if (raw === undefined) return null;
+    if (typeof raw === 'number') {
+      return {
+        id: variable.id,
+        name: variable.name,
+        category: floatCategory(variable.name),
+        value: String(raw),
+        source: sourceName,
+        kind: 'variables',
+        libraryName,
+      };
+    }
+    if (typeof raw === 'object' && raw !== null) {
+      // VARIABLE_ALIAS: { type: 'VARIABLE_ALIAS', id: '...' }
+      if ('type' in raw && (raw as { type: string }).type === 'VARIABLE_ALIAS') {
+        const aliasId = (raw as { id: string }).id;
+        if (typeof aliasId === 'string') {
+          const resolved = await resolveFloatAlias(aliasId, 0, defaultModeId);
+          if (resolved !== null) {
+            return {
+              id: variable.id,
+              name: variable.name,
+              category: floatCategory(variable.name),
+              value: String(resolved),
+              source: sourceName,
+              kind: 'variables',
+              libraryName,
+            };
+          }
+        }
+      }
+      return null;
+    }
+    return null;
   }
   return null;
 }
@@ -299,15 +381,34 @@ async function buildLocalTokens(): Promise<{ tokens: Token[]; sources: SnapshotS
   const tokens: Token[] = [];
   const sources: SnapshotSource[] = [];
 
+  // Кэш defaultModeId по collectionId. Без кэша на 1000 токенов = +50 сек к скану.
+  const defaultModeByCollection = new Map<string, string>();
+
   // Локальные коллекции переменных
   const localCollections = await figma.variables.getLocalVariableCollectionsAsync();
   for (let i = 0; i < localCollections.length; i++) {
     const collection = localCollections[i];
+    // Локальная коллекция доступна напрямую — кладём в кэш её defaultModeId.
+    defaultModeByCollection.set(collection.id, collection.defaultModeId);
     let count = 0;
     for (let j = 0; j < collection.variableIds.length; j++) {
       const variable = await figma.variables.getVariableByIdAsync(collection.variableIds[j]);
       if (variable === null) continue;
-      const token = await variableToToken(variable, collection.name, undefined);
+      const collectionId = variable.variableCollectionId;
+      let modeId = defaultModeByCollection.get(collectionId);
+      if (modeId === undefined) {
+        try {
+          const c = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+          if (c !== null) {
+            modeId = c.defaultModeId;
+            defaultModeByCollection.set(collectionId, modeId);
+          }
+        } catch {
+          /* noop — пропустим variable ниже */
+        }
+      }
+      if (modeId === undefined) continue;
+      const token = await variableToToken(variable, collection.name, undefined, modeId);
       if (token === null) continue;
       tokens.push(token);
       count++;
@@ -440,6 +541,10 @@ async function buildLibraryTokens(
   const total = libVars.length;
   let current = 0;
 
+  // Кэш defaultModeId по collectionId импортированных коллекций. Без кэша
+  // на 1000 токенов получаем +50 сек к скану из-за повторных getVariableCollectionByIdAsync.
+  const defaultModeByCollection = new Map<string, string>();
+
   // Сразу шлём первый прогресс — UI знает total.
   try {
     figma.ui.postMessage({ type: 'ds-scan-progress', data: { current: 0, total, stage: '' } });
@@ -451,8 +556,23 @@ async function buildLibraryTokens(
     const libVar = libVars[i];
     try {
       const variable = await figma.variables.importVariableByKeyAsync(libVar.key);
-      const token = await variableToToken(variable, libraryName, libraryName);
-      if (token !== null) tokens.push(token);
+      const collectionId = variable.variableCollectionId;
+      let modeId = defaultModeByCollection.get(collectionId);
+      if (modeId === undefined) {
+        try {
+          const c = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+          if (c !== null) {
+            modeId = c.defaultModeId;
+            defaultModeByCollection.set(collectionId, modeId);
+          }
+        } catch {
+          /* noop — variable пропустится ниже */
+        }
+      }
+      if (modeId !== undefined) {
+        const token = await variableToToken(variable, libraryName, libraryName, modeId);
+        if (token !== null) tokens.push(token);
+      }
     } catch {
       // Пропускаем единичную переменную, продолжаем batch.
     }
@@ -571,7 +691,7 @@ export async function buildSnapshot(selectedSource: SelectedSource): Promise<Ref
   const hashInput = tokens.map((t) => t.id + ':' + t.value).join('|');
   const hash = computeHash(hashInput);
 
-  return {
+  const snapshot: ReferenceSnapshot = {
     tokens,
     sources,
     scales: {
@@ -587,6 +707,8 @@ export async function buildSnapshot(selectedSource: SelectedSource): Promise<Ref
     hash,
     selectedSource: effectiveSource,
   };
+
+  return snapshot;
 }
 
 // ---------------------------------------------------------------------------
